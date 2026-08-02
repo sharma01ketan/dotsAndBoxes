@@ -5,9 +5,11 @@
 
 pub mod bitboard;
 pub mod board;
+pub mod moves;
 
 pub use bitboard::{BoxBits, EdgeBits, BOX_WORDS, EDGE_WORDS};
 pub use board::{BoardGeom, BoxId, EdgeCoord, EdgeId, Orientation, Position, MAX_COLS, MAX_ROWS};
+pub use moves::{CompletedBoxes, LegalMoves, MoveError, Undo, MAX_COMPLETED_PER_MOVE};
 
 /// Crate identity helper (used by the server stub smoke check).
 pub fn crate_name() -> &'static str {
