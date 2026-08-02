@@ -3,7 +3,13 @@
 //! This crate is the single source of truth for rules, bitboards, and solvers.
 //! It compiles natively (server / training) and later to WASM (browser).
 
-/// Placeholder until the board model lands (KET-6).
+pub mod bitboard;
+pub mod board;
+
+pub use bitboard::{BoxBits, EdgeBits, BOX_WORDS, EDGE_WORDS};
+pub use board::{BoardGeom, BoxId, EdgeCoord, EdgeId, Orientation, Position, MAX_COLS, MAX_ROWS};
+
+/// Crate identity helper (used by the server stub smoke check).
 pub fn crate_name() -> &'static str {
     "dab-core"
 }
