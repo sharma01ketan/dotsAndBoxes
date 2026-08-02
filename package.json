@@ -1,0 +1,15 @@
+{
+  "name": "dots-and-boxes",
+  "private": true,
+  "packageManager": "pnpm@9.2.0",
+  "scripts": {
+    "dev": "pnpm --filter @dab/web dev",
+    "build": "pnpm --filter @dab/web build",
+    "lint": "pnpm --filter @dab/web lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

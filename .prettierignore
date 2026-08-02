@@ -1,0 +1,11 @@
+target/
+node_modules/
+dist/
+coverage/
+pnpm-lock.yaml
+Cargo.lock
+*.md
+ai/
+proto/
+infra/
+docs/
