@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "core",
+    "server",
+    "gpu",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Ketan Sharma"]
+repository = "https://github.com/sharma01ketan/dotsAndBoxes"
+
+[workspace.dependencies]
+dab-core = { path = "core" }

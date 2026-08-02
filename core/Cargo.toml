@@ -1,0 +1,12 @@
+[package]
+name = "dab-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Shared Dots and Boxes game engine (native + WASM)"
+
+[lib]
+name = "dab_core"
+path = "src/lib.rs"
+crate-type = ["rlib"]

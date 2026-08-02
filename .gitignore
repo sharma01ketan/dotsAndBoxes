@@ -1,0 +1,49 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+*.local
+.vite/
+web/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+ai/.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# WASM / wasm-pack
+pkg/
+**/pkg/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / coverage
+*.log
+coverage/
+htmlcov/
+
+# Model artifacts (large)
+ai/checkpoints/
+ai/models/
+*.onnx
+*.pt
+*.pth
