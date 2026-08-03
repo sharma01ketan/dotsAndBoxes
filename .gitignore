@@ -20,9 +20,11 @@ ai/.venv/
 .mypy_cache/
 .ruff_cache/
 
-# WASM / wasm-pack
+# WASM / wasm-pack (commit wasm/pkg so the web app works after clone)
 pkg/
 **/pkg/
+!wasm/pkg/
+!wasm/pkg/**
 
 # IDE / OS
 .idea/

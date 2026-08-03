@@ -12,8 +12,13 @@ importers:
         specifier: ^3.6.2
         version: 3.9.6
 
+  wasm/pkg: {}
+
   web:
     dependencies:
+      '@dab/dab-wasm':
+        specifier: workspace:*
+        version: link:../wasm/pkg
       react:
         specifier: ^19.1.1
         version: 19.2.8

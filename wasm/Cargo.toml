@@ -1,0 +1,14 @@
+[package]
+name = "dab-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "WASM bindings for dab-core (browser-facing API)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dab-core = { workspace = true }
+wasm-bindgen = "0.2"

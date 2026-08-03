@@ -1,0 +1,20 @@
+{
+  "name": "@dab/dab-wasm",
+  "type": "module",
+  "collaborators": [
+    "Ketan Sharma"
+  ],
+  "description": "WASM bindings for dab-core (browser-facing API)",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "dab_wasm_bg.wasm",
+    "dab_wasm.js",
+    "dab_wasm.d.ts"
+  ],
+  "main": "dab_wasm.js",
+  "types": "dab_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

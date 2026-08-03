@@ -8,8 +8,9 @@ AlphaZero-style AI. Full design: [PLAN.md](./PLAN.md).
 ```
 dotsAndBoxes/
 ├─ PLAN.md
-├─ core/            # Rust: shared game engine + solver (native + wasm)
-├─ cli/             # Rust: terminal hotseat playground (validates core)
+├─ core/            # Rust: shared game engine + solver
+├─ wasm/            # Rust → WASM bindings (package @dab/dab-wasm)
+├─ cli/             # Rust: terminal hotseat playground
 ├─ server/          # Rust: axum WebSocket backend
 ├─ gpu/             # Rust: wgpu/WGSL compute kernels
 ├─ web/             # React + TypeScript + PixiJS frontend
@@ -22,10 +23,11 @@ dotsAndBoxes/
 | Area | Path | Status |
 |------|------|--------|
 | Shared game core | `core/` | Rules + bitboards (playable via CLI) |
+| WASM bindings | `wasm/` | `@dab/dab-wasm` for the browser |
 | Terminal playground | `cli/` | Hotseat REPL to validate the core |
 | Realtime server | `server/` | Stub (Rust) |
 | GPU kernels | `gpu/` | Stub (Rust) |
-| Web UI | `web/` | Stub (Vite + React + TS) |
+| Web UI | `web/` | WASM smoke-test UI (PixiJS board next) |
 | AI training | `ai/` | Stub (Python) |
 | Protocol | `proto/` | Placeholder |
 | Infra | `infra/` | Placeholder |
@@ -33,7 +35,7 @@ dotsAndBoxes/
 
 ## Prerequisites
 
-- **Rust** stable (edition 2021); add `wasm32-unknown-unknown` when WASM lands
+- **Rust** stable + `wasm32-unknown-unknown` + [`wasm-pack`](https://rustwasm.github.io/wasm-pack/)
 - **Node.js** 20+ and **pnpm** 9+
 - **Python** 3.11+ (optional [uv](https://github.com/astral-sh/uv))
 
@@ -49,24 +51,21 @@ cargo run -p dab-server
 cargo run -p dab-cli
 cargo run -p dab-cli -- --rows 3 --cols 3
 
-# Web app
+# WASM + web (browser can call the core)
+pnpm build:wasm
 pnpm install
 pnpm --filter @dab/web build
 pnpm dev
-
-# AI package (scaffold)
-cd ai && python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-dab-ai
-pytest
 ```
 
-See [cli/README.md](./cli/README.md) for playground commands (`H r c`, `V r c`, `legal`, …).
+Open http://localhost:5173 — you should see scores, legal move buttons, and plays updating via WASM.
+
+See [cli/README.md](./cli/README.md) and [wasm/README.md](./wasm/README.md).
 
 ## Tooling
 
-- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `server`, `gpu`)
-- JS/TS: pnpm workspace, Prettier (root), ESLint (`web/`)
+- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`, `server`, `gpu`)
+- JS/TS: pnpm workspace (`web`, `wasm/pkg`), Prettier, ESLint
 - Python: `ai/pyproject.toml` (hatchling, uv-compatible)
 
 ## License

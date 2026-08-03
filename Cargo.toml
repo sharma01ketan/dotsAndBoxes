@@ -5,6 +5,7 @@ members = [
     "server",
     "gpu",
     "cli",
+    "wasm",
 ]
 
 [workspace.package]
