@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "dab-cli"
+version = "0.1.0"
+dependencies = [
+ "dab-core",
+]
+
+[[package]]
 name = "dab-core"
 version = "0.1.0"
 

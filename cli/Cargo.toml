@@ -1,0 +1,14 @@
+[package]
+name = "dab-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Terminal hotseat playground for Dots and Boxes (validates dab-core)"
+
+[[bin]]
+name = "dab-cli"
+path = "src/main.rs"
+
+[dependencies]
+dab-core = { workspace = true }

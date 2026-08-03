@@ -9,6 +9,7 @@ AlphaZero-style AI. Full design: [PLAN.md](./PLAN.md).
 dotsAndBoxes/
 ├─ PLAN.md
 ├─ core/            # Rust: shared game engine + solver (native + wasm)
+├─ cli/             # Rust: terminal hotseat playground (validates core)
 ├─ server/          # Rust: axum WebSocket backend
 ├─ gpu/             # Rust: wgpu/WGSL compute kernels
 ├─ web/             # React + TypeScript + PixiJS frontend
@@ -20,7 +21,8 @@ dotsAndBoxes/
 
 | Area | Path | Status |
 |------|------|--------|
-| Shared game core | `core/` | Stub (Rust) |
+| Shared game core | `core/` | Rules + bitboards (playable via CLI) |
+| Terminal playground | `cli/` | Hotseat REPL to validate the core |
 | Realtime server | `server/` | Stub (Rust) |
 | GPU kernels | `gpu/` | Stub (Rust) |
 | Web UI | `web/` | Stub (Vite + React + TS) |
@@ -43,6 +45,10 @@ cargo build
 cargo test
 cargo run -p dab-server
 
+# Terminal hotseat playground (validates dab-core)
+cargo run -p dab-cli
+cargo run -p dab-cli -- --rows 3 --cols 3
+
 # Web app
 pnpm install
 pnpm --filter @dab/web build
@@ -55,9 +61,11 @@ dab-ai
 pytest
 ```
 
+See [cli/README.md](./cli/README.md) for playground commands (`H r c`, `V r c`, `legal`, …).
+
 ## Tooling
 
-- Rust: `rustfmt.toml`, Cargo workspace (`core`, `server`, `gpu`)
+- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `server`, `gpu`)
 - JS/TS: pnpm workspace, Prettier (root), ESLint (`web/`)
 - Python: `ai/pyproject.toml` (hatchling, uv-compatible)
 

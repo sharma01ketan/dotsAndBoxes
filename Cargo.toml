@@ -4,6 +4,7 @@ members = [
     "core",
     "server",
     "gpu",
+    "cli",
 ]
 
 [workspace.package]
