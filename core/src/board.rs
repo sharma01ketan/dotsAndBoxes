@@ -162,8 +162,8 @@ impl BoardGeom {
 
 /// Packed board state: drawn edges + claimed boxes.
 ///
-/// Ownership of claimed boxes is deferred to the scoring ticket (KET-8);
-/// this bitboard only tracks which boxes are complete.
+/// Box *ownership* (which player scored the box) lives on [`crate::game::Game`];
+/// this bitboard only tracks which boxes are complete/claimed in the position.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Position {
     geom: BoardGeom,

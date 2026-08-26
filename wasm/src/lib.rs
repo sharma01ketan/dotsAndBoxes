@@ -3,7 +3,10 @@
 //! API is deliberately data-oriented: indices, typed arrays, and small numeric
 //! codes — no rich JS objects — so the web app stays in control of UI state.
 
-use dab_core::{BoardGeom, EdgeCoord, EdgeId, Game, MoveError, Orientation, Player, Winner};
+use dab_core::{
+    BoardGeom, EdgeCoord, EdgeId, Engine, Game, GreedyEngine, MoveError, Orientation, Player,
+    RandomEngine, Winner,
+};
 use wasm_bindgen::prelude::*;
 
 /// Orientation codes for JS: `0` = horizontal, `1` = vertical.
@@ -18,6 +21,11 @@ pub const WINNER_DRAW: i8 = 2;
 
 /// Box owner codes: `-1` unclaimed, `0` P1, `1` P2.
 pub const OWNER_NONE: i8 = -1;
+
+/// `choose_move` policy: uniform random legal move.
+pub const POLICY_RANDOM: u8 = 0;
+/// `choose_move` policy: greedy (take boxes / avoid giving).
+pub const POLICY_GREEDY: u8 = 1;
 
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
@@ -189,6 +197,26 @@ impl WasmGame {
         out.extend_from_slice(result.completed.as_slice());
         Ok(out)
     }
+
+    /// Choose a legal edge without applying it.
+    ///
+    /// `policy`: `0` = random, `1` = greedy. `seed` seeds the engine RNG.
+    #[wasm_bindgen(js_name = chooseMove)]
+    pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue> {
+        if self.inner.is_terminal() {
+            return Err(js_err("cannot choose a move on a terminal game"));
+        }
+        let edge = match policy {
+            POLICY_RANDOM => RandomEngine::new(seed).choose(&self.inner),
+            POLICY_GREEDY => GreedyEngine::new(seed).choose(&self.inner),
+            _ => {
+                return Err(js_err(format!(
+                    "unknown policy {policy} (0=random, 1=greedy)"
+                )));
+            }
+        };
+        Ok(edge)
+    }
 }
 
 #[cfg(test)]
@@ -205,5 +233,18 @@ mod tests {
         assert_eq!(game.current_player(), 1);
         assert_eq!(game.score_p1(), 0);
         assert!(game.edge_is_drawn(0));
+    }
+
+    #[test]
+    fn choose_move_returns_legal_and_does_not_play() {
+        let mut game = WasmGame::new(2, 2).unwrap();
+        let edge = game.choose_move(POLICY_GREEDY, 42).unwrap();
+        assert!(game.is_legal(edge));
+        assert!(!game.edge_is_drawn(edge));
+        assert_eq!(game.current_player(), 0);
+        assert_eq!(game.legal_moves().len(), game.edge_count() as usize);
+
+        let again = game.choose_move(POLICY_RANDOM, 7).unwrap();
+        assert!(game.is_legal(again));
     }
 }

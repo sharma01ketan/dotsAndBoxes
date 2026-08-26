@@ -173,6 +173,55 @@ button:hover {
   color: var(--accent);
 }
 
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(26, 31, 28, 0.35);
+}
+
+.modal {
+  width: min(22rem, 100%);
+  text-align: left;
+  padding: 1.25rem 1.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(26, 31, 28, 0.18);
+  background: var(--paper);
+  box-shadow: 0 12px 40px rgba(26, 31, 28, 0.18);
+}
+
+.modal h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal-confirm {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .board-host {
   width: 100%;
   aspect-ratio: 1;

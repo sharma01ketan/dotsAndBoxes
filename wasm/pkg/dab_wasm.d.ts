@@ -13,6 +13,12 @@ export class WasmGame {
      */
     boxOwner(box_id: number): number;
     /**
+     * Choose a legal edge without applying it.
+     *
+     * `policy`: `0` = random, `1` = greedy. `seed` seeds the engine RNG.
+     */
+    chooseMove(policy: number, seed: bigint): number;
+    /**
      * Current player: `0` = P1, `1` = P2.
      */
     currentPlayer(): number;
@@ -60,6 +66,7 @@ export interface InitOutput {
     readonly init_panic_hook: () => void;
     readonly wasmgame_boxCount: (a: number) => number;
     readonly wasmgame_boxOwner: (a: number, b: number) => number;
+    readonly wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];
     readonly wasmgame_cols: (a: number) => number;
     readonly wasmgame_currentPlayer: (a: number) => number;
     readonly wasmgame_edgeCoord: (a: number, b: number) => [number, number, number, number];

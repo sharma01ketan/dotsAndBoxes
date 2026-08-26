@@ -240,31 +240,27 @@ impl Position {
         };
         edges.into_iter().all(|e| self.edge_is_drawn(e))
     }
+
+    /// How many of the four sides of `box_id` are currently drawn (0–4).
+    pub fn sides_drawn(self, box_id: BoxId) -> u8 {
+        let Some((row, col)) = self.geom().box_coord(box_id) else {
+            return 0;
+        };
+        let Some(edges) = self.geom().box_edges(row, col) else {
+            return 0;
+        };
+        edges
+            .into_iter()
+            .filter(|&e| self.edge_is_drawn(e))
+            .count() as u8
+    }
 }
 
-#[cfg(test)]
+    #[cfg(test)]
 mod tests {
     use super::*;
     use crate::board::BoardGeom;
-
-    /// Tiny xorshift for deterministic fuzzing without extra deps.
-    struct XorShift64(u64);
-
-    impl XorShift64 {
-        fn next_u64(&mut self) -> u64 {
-            let mut x = self.0;
-            x ^= x << 13;
-            x ^= x >> 7;
-            x ^= x << 17;
-            self.0 = x;
-            x
-        }
-
-        fn gen_index(&mut self, len: usize) -> usize {
-            debug_assert!(len > 0);
-            (self.next_u64() as usize) % len
-        }
-    }
+    use crate::rng::XorShift64;
 
     #[test]
     fn legal_moves_starts_with_all_edges() {
@@ -326,7 +322,7 @@ mod tests {
 
     #[test]
     fn random_playouts_stay_legal_and_undo_clean() {
-        let mut rng = XorShift64(0xDEAD_BEEF_CAFE_BABE);
+        let mut rng = XorShift64::new(0xDEAD_BEEF_CAFE_BABE);
         for rows in 1..=5u8 {
             for cols in 1..=5u8 {
                 let geom = BoardGeom::new(rows, cols).unwrap();

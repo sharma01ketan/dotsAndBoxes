@@ -5,6 +5,7 @@ export const __wbg_wasmgame_free: (a: number, b: number) => void;
 export const init_panic_hook: () => void;
 export const wasmgame_boxCount: (a: number) => number;
 export const wasmgame_boxOwner: (a: number, b: number) => number;
+export const wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];
 export const wasmgame_cols: (a: number) => number;
 export const wasmgame_currentPlayer: (a: number) => number;
 export const wasmgame_edgeCoord: (a: number, b: number) => [number, number, number, number];

@@ -262,6 +262,8 @@ Each phase ends with something demoable.
 
 ### Phase 2 — AI opponents + CGT
 - Random, greedy, CGT-heuristic engines in the Rust core.
+  Spec for baseline engines: [`docs/specs/phase2-random-greedy-engines.md`](./docs/specs/phase2-random-greedy-engines.md) (KET-15).
+- Browser vs Random/Greedy (thin KET-20): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
 - Exact solver (alpha-beta + TT + symmetry) for small boards → "Perfect" mode.
 - Local WASM MCTS for Medium/Hard-lite.
 - Theory overlay (chains/loops/parity) in the UI.

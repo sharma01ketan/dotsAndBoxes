@@ -12,10 +12,15 @@ import {
   type Point,
 } from './layout';
 import { animate, delayMs, prefersReducedMotion, type TweenHandle } from './motion';
+import { createHoverSfxController } from './edgeHoverSfx';
 
 type Props = {
   snap: GameSnapshot;
   lastMove: PlayOutcome | null;
+  /** Bumped on newGame — forces a full board rebuild even when size is unchanged. */
+  gameGeneration: number;
+  /** When false, undrawn edges are not clickable (AI turn / busy). */
+  inputEnabled?: boolean;
   onEdgeClick: (edgeId: number) => void;
   onEdgeHover?: (edgeId: number) => void;
   edgeCoord: (edgeId: number) => [number, number, number] | null;
@@ -53,6 +58,7 @@ type BoardRuntime = {
   layout: BoardLayout | null;
   rows: number;
   cols: number;
+  gameGeneration: number;
   edges: Map<number, EdgeGfx>;
   boxes: Map<number, BoxGfx>;
   tweens: TweenHandle[];
@@ -65,34 +71,6 @@ const UNDRAWN_ALPHA = 0.55;
 const BOX_CLAIM_MS = 250;
 const CLAIM_STAGGER_MS = 70;
 const WIN_PULSE_MS = 200;
-const HOVER_SFX_DELAY_MS = 90;
-
-const hoverState = {
-  edgeId: null as number | null,
-  suppressUntil: 0,
-  timer: null as ReturnType<typeof setTimeout> | null,
-};
-
-function clearHoverTimer() {
-  if (hoverState.timer !== null) {
-    clearTimeout(hoverState.timer);
-    hoverState.timer = null;
-  }
-}
-
-function armHoverSfx(edgeId: number, onEdgeHover?: (id: number) => void) {
-  clearHoverTimer();
-  const now = performance.now();
-  if (now < hoverState.suppressUntil) return;
-  if (hoverState.edgeId === edgeId) return;
-  hoverState.edgeId = edgeId;
-  hoverState.timer = setTimeout(() => {
-    hoverState.timer = null;
-    if (performance.now() < hoverState.suppressUntil) return;
-    if (hoverState.edgeId !== edgeId) return;
-    onEdgeHover?.(edgeId);
-  }, HOVER_SFX_DELAY_MS);
-}
 
 function strokeColor(owner: number, drawn: boolean): number {
   if (!drawn) return COLORS.undrawn;
@@ -246,37 +224,33 @@ function wireEdgeHit(
   undrawnW: number,
   edgesMap: Map<number, EdgeGfx>,
   onEdgeClick: (id: number) => void,
-  onEdgeHover?: (id: number) => void,
+  hoverSfx: ReturnType<typeof createHoverSfxController>,
+  inputEnabled: boolean,
 ) {
   const { hit, a, b, id: edgeId } = edge;
   hit.removeAllListeners();
-  hit.eventMode = edge.drawn || snap.isTerminal ? 'none' : 'static';
-  hit.cursor = edge.drawn || snap.isTerminal ? 'default' : 'pointer';
+  const live = inputEnabled && !edge.drawn && !snap.isTerminal;
+  hit.eventMode = live ? 'static' : 'none';
+  hit.cursor = live ? 'pointer' : 'default';
   const preview = hoverColor(snap.currentPlayer);
 
   hit.on('pointerover', () => {
     const cur = edgesMap.get(edgeId);
     if (!cur || cur.drawn) return;
-    // Full-length preview in the current player's color, reduced opacity.
     drawEdgeLine(cur.line, a, b, preview, lineW, HOVER_EDGE_ALPHA);
-    armHoverSfx(edgeId, onEdgeHover);
+    hoverSfx.enter(edgeId);
   });
   hit.on('pointerout', () => {
     const cur = edgesMap.get(edgeId);
     if (!cur || cur.drawn) return;
     drawEdgeLine(cur.line, a, b, COLORS.undrawn, undrawnW, UNDRAWN_ALPHA);
-    clearHoverTimer();
-    if (hoverState.edgeId === edgeId) hoverState.edgeId = null;
+    hoverSfx.leave(edgeId);
   });
   hit.on('pointerdown', () => {
-    clearHoverTimer();
-    hoverState.suppressUntil = performance.now() + 220;
-    hoverState.edgeId = edgeId;
+    hoverSfx.press();
   });
   hit.on('pointertap', () => {
-    clearHoverTimer();
-    hoverState.suppressUntil = performance.now() + 220;
-    hoverState.edgeId = edgeId;
+    hoverSfx.press();
     onEdgeClick(edgeId);
   });
 }
@@ -288,8 +262,10 @@ function fullRebuild(
   layout: BoardLayout,
   edgeCoord: (edgeId: number) => [number, number, number] | null,
   onEdgeClick: (edgeId: number) => void,
-  onEdgeHover?: (edgeId: number) => void,
+  hoverSfx: ReturnType<typeof createHoverSfxController>,
+  inputEnabled: boolean,
 ) {
+  hoverSfx.rebuild();
   cancelTweens(rt);
   clearLayer(layers.boxes);
   clearLayer(layers.edges);
@@ -328,7 +304,16 @@ function fullRebuild(
     layers.edges.addChild(group);
     const edge: EdgeGfx = { id, group, line, hit, a, b, drawn, owner };
     rt.edges.set(id, edge);
-    wireEdgeHit(edge, snap, lineW, undrawnW, rt.edges, onEdgeClick, onEdgeHover);
+    wireEdgeHit(
+      edge,
+      snap,
+      lineW,
+      undrawnW,
+      rt.edges,
+      onEdgeClick,
+      hoverSfx,
+      inputEnabled,
+    );
   }
 
   for (let id = 0; id < snap.boxCount; id++) {
@@ -429,9 +414,11 @@ function syncBoard(
   snap: GameSnapshot,
   layout: BoardLayout,
   lastMove: PlayOutcome | null,
+  gameGeneration: number,
   edgeCoord: (edgeId: number) => [number, number, number] | null,
   onEdgeClick: (edgeId: number) => void,
-  onEdgeHover?: (edgeId: number) => void,
+  hoverSfx: ReturnType<typeof createHoverSfxController>,
+  inputEnabled: boolean,
 ) {
   const sizeChanged =
     !rt.layout ||
@@ -440,16 +427,37 @@ function syncBoard(
     rt.layout.cell !== layout.cell ||
     rt.layout.originX !== layout.originX ||
     rt.layout.originY !== layout.originY;
+  // Same-size newGame must rebuild — incremental sync never clears claimed boxes.
+  const generationChanged = rt.gameGeneration !== gameGeneration;
 
-  if (sizeChanged) {
-    fullRebuild(layers, rt, snap, layout, edgeCoord, onEdgeClick, onEdgeHover);
+  if (sizeChanged || generationChanged) {
+    fullRebuild(
+      layers,
+      rt,
+      snap,
+      layout,
+      edgeCoord,
+      onEdgeClick,
+      hoverSfx,
+      inputEnabled,
+    );
+    rt.gameGeneration = gameGeneration;
     rt.lastMoveKey = null;
     // Still apply lastMove animation if present after rebuild.
   } else {
     const lineW = Math.max(3, layout.cell * 0.06);
     const undrawnW = Math.max(2, layout.cell * 0.04);
     for (const edge of rt.edges.values()) {
-      wireEdgeHit(edge, snap, lineW, undrawnW, rt.edges, onEdgeClick, onEdgeHover);
+      wireEdgeHit(
+        edge,
+        snap,
+        lineW,
+        undrawnW,
+        rt.edges,
+        onEdgeClick,
+        hoverSfx,
+        inputEnabled,
+      );
       const owner = snap.edgeOwner[edge.id] ?? -1;
       const drawn = owner >= 0;
       if (drawn === edge.drawn && owner === edge.owner) continue;
@@ -465,7 +473,6 @@ function syncBoard(
           drawn ? lineW : undrawnW,
           drawn ? 1 : UNDRAWN_ALPHA,
         );
-        edge.hit.eventMode = drawn || snap.isTerminal ? 'none' : 'static';
       }
     }
   }
@@ -506,6 +513,8 @@ function syncBoard(
 export default function PixiBoard({
   snap,
   lastMove,
+  gameGeneration,
+  inputEnabled = true,
   onEdgeClick,
   onEdgeHover,
   edgeCoord,
@@ -517,6 +526,7 @@ export default function PixiBoard({
     layout: null,
     rows: 0,
     cols: 0,
+    gameGeneration: -1,
     edges: new Map(),
     boxes: new Map(),
     tweens: [],
@@ -524,12 +534,19 @@ export default function PixiBoard({
   });
   const snapRef = useRef(snap);
   const lastMoveRef = useRef(lastMove);
+  const gameGenerationRef = useRef(gameGeneration);
+  const inputEnabledRef = useRef(inputEnabled);
   const onClickRef = useRef(onEdgeClick);
   const onHoverRef = useRef(onEdgeHover);
   const edgeCoordRef = useRef(edgeCoord);
+  const hoverSfxRef = useRef<ReturnType<
+    typeof createHoverSfxController
+  > | null>(null);
 
   snapRef.current = snap;
   lastMoveRef.current = lastMove;
+  gameGenerationRef.current = gameGeneration;
+  inputEnabledRef.current = inputEnabled;
   onClickRef.current = onEdgeClick;
   onHoverRef.current = onEdgeHover;
   edgeCoordRef.current = edgeCoord;
@@ -538,7 +555,8 @@ export default function PixiBoard({
     const app = appRef.current;
     const host = hostRef.current;
     const layers = layersRef.current;
-    if (!app || !host || !layers) return;
+    const hoverSfx = hoverSfxRef.current;
+    if (!app || !host || !layers || !hoverSfx) return;
     const s = snapRef.current;
     const w = host.clientWidth || 360;
     const h = host.clientHeight || 360;
@@ -550,9 +568,11 @@ export default function PixiBoard({
       s,
       layout,
       lastMoveRef.current,
+      gameGenerationRef.current,
       (id) => edgeCoordRef.current(id),
       (id) => onClickRef.current(id),
-      (id) => onHoverRef.current?.(id),
+      hoverSfx,
+      inputEnabledRef.current,
     );
   };
 
@@ -565,6 +585,10 @@ export default function PixiBoard({
     const boxes = new Container();
     const edges = new Container();
     const dots = new Container();
+    const hoverSfx = createHoverSfxController((edgeId) => {
+      onHoverRef.current?.(edgeId);
+    });
+    hoverSfxRef.current = hoverSfx;
 
     const app = new Application();
 
@@ -618,7 +642,8 @@ export default function PixiBoard({
 
     return () => {
       cancelled = true;
-      clearHoverTimer();
+      hoverSfx.dispose();
+      if (hoverSfxRef.current === hoverSfx) hoverSfxRef.current = null;
       cancelTweens(runtime);
       resizeObserver?.disconnect();
       if (appRef.current === app) {
@@ -634,7 +659,7 @@ export default function PixiBoard({
 
   useEffect(() => {
     paint();
-  }, [snap, lastMove]);
+  }, [snap, lastMove, gameGeneration, inputEnabled]);
 
   return <div className="board-host" ref={hostRef} aria-label="Dots and Boxes board" />;
 }

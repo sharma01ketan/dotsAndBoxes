@@ -20,6 +20,7 @@ Target web shape:
 App.tsx                 # HUD + wiring
 game/store.ts           # Zustand + WasmGame + PlayOutcome
 board/PixiBoard.tsx     # render + hit-test + light motion
+board/edgeHoverSfx.ts   # hover SFX state machine (tested)
 board/layout.ts         # geometry
 board/motion.ts         # rAF tweens (KET-14)
 audio/sounds.ts         # catalog + pure SFX helpers
@@ -27,7 +28,17 @@ audio/useGameSounds.ts  # use-sound + mute
 lib/wasmGame.ts         # WASM init
 ```
 
+Target `dab-core` shape (rules + baseline engines):
+
+```
+board.rs / bitboard.rs  # geometry + packed state
+moves.rs / game.rs      # legal play, undo, scoring, extra turn
+engine.rs               # Random + Greedy (KET-15); Engine trait
+rng.rs                  # shared XorShift64 (engines + tests)
+```
+
 Polish motion: [`docs/specs/phase1-board-polish.md`](docs/specs/phase1-board-polish.md).
+Engines: [`docs/specs/phase2-random-greedy-engines.md`](docs/specs/phase2-random-greedy-engines.md).
 
 ## Keep dependencies one-way
 
@@ -49,10 +60,15 @@ Polish motion: [`docs/specs/phase1-board-polish.md`](docs/specs/phase1-board-pol
 - Soft UI SFX: throttle hover (leading-edge), slight delay for win/tie after draw/claim.
 - Sticky mute early in tab order; game must work fully muted.
 - Prefer CC0 assets + `ATTRIBUTION.md` over hotlinking.
-- Edge hover SFX: **debounce ~90ms** and suppress after tap — a click fires pointerover then pointertap (and scene rebuild re-fires over); without this, the first click plays hover+draw.
+- Edge hover SFX: dedicated state machine in `board/edgeHoverSfx.ts`
+  (enter/leave/press/rebuild). Do **not** overload one `edgeId` flag for
+  “hovered” + “armed” — leave-during-debounce used to clear the id while the
+  timer still fired, silencing the first hover. Press suppresses click→over
+  stacks; full rebuild resets pending only.
 
 ## Specs and tickets
 
 - Phase 1 board behavior: `docs/specs/phase1-hotseat-board.md`.
 - Polish (animations + sound): Linear **KET-14**.
+- vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (thin KET-20).
 - When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.

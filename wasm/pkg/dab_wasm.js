@@ -31,6 +31,21 @@ export class WasmGame {
         return ret;
     }
     /**
+     * Choose a legal edge without applying it.
+     *
+     * `policy`: `0` = random, `1` = greedy. `seed` seeds the engine RNG.
+     * @param {number} policy
+     * @param {bigint} seed
+     * @returns {number}
+     */
+    chooseMove(policy, seed) {
+        const ret = wasm.wasmgame_chooseMove(this.__wbg_ptr, policy, seed);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0];
+    }
+    /**
      * @returns {number}
      */
     get cols() {
