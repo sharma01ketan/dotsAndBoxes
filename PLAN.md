@@ -255,7 +255,7 @@ Each phase ends with something demoable.
 ### Phase 1 — Playable core (target of first milestone)
 - Rust core: board model, bitboards, legal moves, box completion, scoring.
 - WASM build of the core with a clean TS binding.
-- React + PixiJS board with local **hotseat** play (two humans, one screen).
+- React + PixiJS board with local **Opponent** play (two humans, one screen; id `hotseat`).
 - Basic UI: new game, board size, turn indicator, score, win screen.
 - Tests for the core; smoke build of WASM.
 - **Demo:** a polished, animated, playable game in the browser.
@@ -264,6 +264,7 @@ Each phase ends with something demoable.
 - Random, greedy, CGT-heuristic engines in the Rust core.
   Spec for baseline engines: [`docs/specs/phase2-random-greedy-engines.md`](./docs/specs/phase2-random-greedy-engines.md) (KET-15).
 - Browser vs Random/Greedy (thin KET-20): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
+- Mode label **Opponent** (was Hotseat): [`docs/specs/opponent-mode-copy.md`](./docs/specs/opponent-mode-copy.md).
 - Exact solver (alpha-beta + TT + symmetry) for small boards → "Perfect" mode.
 - Local WASM MCTS for Medium/Hard-lite.
 - Theory overlay (chains/loops/parity) in the UI.

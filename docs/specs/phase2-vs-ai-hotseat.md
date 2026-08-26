@@ -10,7 +10,8 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 
 ## Goals
 
-- Mode control: **Hotseat** | **vs Random** | **vs Greedy**.
+- Mode control: **Opponent** | **vs Random** | **vs Greedy**
+  (label rename; see [`opponent-mode-copy.md`](./opponent-mode-copy.md)).
 - Human is always **P1**; AI is **P2**.
 - WASM exposes `chooseMove`; JS still applies moves via existing `play`.
 - AI auto-plays on its turn (including capture chains / extra turns).
@@ -26,15 +27,15 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 
 ## Modes
 
-| Mode | P1 | P2 |
-|------|----|----|
-| Hotseat | Human | Human |
-| vs Random | Human | `RandomEngine` |
-| vs Greedy | Human | `GreedyEngine` |
+| Mode (UI label) | Id | P1 | P2 |
+|-----------------|----|----|----|
+| Opponent | `hotseat` | Human | Human |
+| vs Random | `vs-random` | Human | `RandomEngine` |
+| vs Greedy | `vs-greedy` | Human | `GreedyEngine` |
 
 | Setting | Value |
 |---------|--------|
-| Default | Hotseat |
+| Default | vs Greedy (`vs-greedy`) |
 | Mode change | Starts a **new game** (same as board-size change) |
 | Board sizes | Unchanged: 2–5 boxes per side |
 
@@ -63,7 +64,7 @@ Rebuild `@dab/dab-wasm` as part of implementation (`pnpm build:wasm` or repo equ
 
 ```
 App
-├── mode control (Hotseat | vs Random | vs Greedy)
+├── mode control (Opponent | vs Random | vs Greedy)
 ├── useGameStore → WasmGame (play + chooseMove)
 └── PixiBoard (ignore clicks while AI turn)
 ```
@@ -106,13 +107,13 @@ sequenceDiagram
 - Mode control beside board size + New game.
 - vs AI: score labels **You** / **CPU (Random)** or **CPU (Greedy)**; turn shows
   “Your turn” / “CPU thinking…” when `aiBusy`.
-- Title/lede: Hotseat stays as today; vs AI e.g. “You vs Greedy”.
+- Title/lede: Opponent mode title is **Opponent**; vs AI e.g. “You vs Greedy”.
 - Mute, size, New game behavior unchanged (New game keeps current mode).
 
 ## Acceptance
 
 - [ ] `pnpm build:wasm` (or equivalent) exposes `chooseMove`; random/greedy return legal edges.
-- [ ] Mode toggle: Hotseat | vs Random | vs Greedy; changing mode starts a fresh game.
+- [ ] Mode toggle: Opponent | vs Random | vs Greedy; changing mode starts a fresh game.
 - [ ] Full game vs Greedy playable end-to-end (captures, extra turns, win/tie).
 - [ ] Human cannot click edges during AI turn.
 - [ ] AI moves trigger the same motion + SFX path as human moves; mute still works.
@@ -131,6 +132,7 @@ sequenceDiagram
 | Path | Role |
 |------|------|
 | `docs/specs/phase2-vs-ai-hotseat.md` | This spec |
+| `docs/specs/opponent-mode-copy.md` | Hotseat → Opponent label |
 | `wasm/src/lib.rs` | `chooseMove` binding |
 | `web/src/game/store.ts` | Mode, `aiBusy`, AI choose+play loop |
 | `web/src/App.tsx` | Mode control + schedule AI turns |

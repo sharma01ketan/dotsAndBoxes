@@ -27,7 +27,7 @@ dotsAndBoxes/
 | Terminal playground | `cli/` | Hotseat REPL to validate the core |
 | Realtime server | `server/` | Stub (Rust) |
 | GPU kernels | `gpu/` | Stub (Rust) |
-| Web UI | `web/` | Hotseat PixiJS board + WASM |
+| Web UI | `web/` | Opponent / vs-AI PixiJS board + WASM |
 | AI training | `ai/` | Stub (Python) |
 | Protocol | `proto/` | Placeholder |
 | Infra | `infra/` | Placeholder |

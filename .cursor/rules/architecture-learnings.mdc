@@ -71,4 +71,5 @@ Engines: [`docs/specs/phase2-random-greedy-engines.md`](docs/specs/phase2-random
 - Phase 1 board behavior: `docs/specs/phase1-hotseat-board.md`.
 - Polish (animations + sound): Linear **KET-14**.
 - vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (thin KET-20).
+- Mode copy: local two-human label is **Opponent** (`PlayMode` id stays `hotseat`); see `docs/specs/opponent-mode-copy.md`.
 - When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.

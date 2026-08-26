@@ -12,11 +12,11 @@ export const DEFAULT_BOARD = 3;
 
 export type GameStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-/** Hotseat or human (P1) vs CPU (P2). */
+/** Local Opponent (two humans) or human (P1) vs CPU (P2). Id `hotseat` is stable. */
 export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy';
 
 export const PLAY_MODES: { id: PlayMode; label: string }[] = [
-  { id: 'hotseat', label: 'Hotseat' },
+  { id: 'hotseat', label: 'Opponent' },
   { id: 'vs-random', label: 'vs Random' },
   { id: 'vs-greedy', label: 'vs Greedy' },
 ];
@@ -205,7 +205,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: null,
   message: '',
   boardSize: DEFAULT_BOARD,
-  mode: 'hotseat',
+  mode: 'vs-greedy',
   aiBusy: false,
   gameSeed: 1,
   gameGeneration: 0,
@@ -323,7 +323,7 @@ export function modeTitle(mode: PlayMode): string {
     case 'vs-greedy':
       return 'You vs Greedy';
     default:
-      return 'Hotseat';
+      return 'Opponent';
   }
 }
 
