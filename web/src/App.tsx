@@ -1,150 +1,162 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useGameSounds, useSoundMute } from './audio/useGameSounds';
+import PixiBoard from './board/PixiBoard';
 import {
-  initWasm,
+  MAX_BOARD,
+  MIN_BOARD,
   playerLabel,
-  WasmGame,
+  useGameStore,
   winnerLabel,
-} from './lib/wasmGame';
+  type PlayOutcome,
+} from './game/store';
 
-type Snapshot = {
-  rows: number;
-  cols: number;
-  currentPlayer: number;
-  scoreP1: number;
-  scoreP2: number;
-  legalMoves: number[];
-  isTerminal: boolean;
-  winner: number;
-  lastMessage: string;
-};
-
-function snapshotFrom(game: WasmGame, lastMessage: string): Snapshot {
-  return {
-    rows: game.rows,
-    cols: game.cols,
-    currentPlayer: game.currentPlayer(),
-    scoreP1: game.scoreP1(),
-    scoreP2: game.scoreP2(),
-    legalMoves: Array.from(game.legalMoves()),
-    isTerminal: game.isTerminal(),
-    winner: game.winner(),
-    lastMessage,
-  };
+function MuteToggle() {
+  const { enabled, toggle } = useSoundMute();
+  return (
+    <button
+      type="button"
+      className="mute-toggle"
+      onClick={toggle}
+      aria-pressed={!enabled}
+      aria-label={enabled ? 'Mute sound effects' : 'Unmute sound effects'}
+    >
+      {enabled ? 'Sound on' : 'Sound off'}
+    </button>
+  );
 }
 
 export default function App() {
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [error, setError] = useState<string | null>(null);
-  const [game, setGame] = useState<WasmGame | null>(null);
-  const [snap, setSnap] = useState<Snapshot | null>(null);
+  const status = useGameStore((s) => s.status);
+  const error = useGameStore((s) => s.error);
+  const message = useGameStore((s) => s.message);
+  const boardSize = useGameStore((s) => s.boardSize);
+  const snap = useGameStore((s) => s.snap);
+  const game = useGameStore((s) => s.game);
+  const init = useGameStore((s) => s.init);
+  const newGame = useGameStore((s) => s.newGame);
+  const setBoardSize = useGameStore((s) => s.setBoardSize);
+  const play = useGameStore((s) => s.play);
+  const { playHover, playMove, playNewGame } = useGameSounds();
+  const [lastMove, setLastMove] = useState<PlayOutcome | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
+    void init();
+  }, [init]);
+
+  const edgeCoord = useCallback(
+    (edgeId: number): [number, number, number] | null => {
+      if (!game) return null;
       try {
-        await initWasm();
-        if (cancelled) return;
-        const g = new WasmGame(2, 2);
-        setGame(g);
-        setSnap(snapshotFrom(g, 'WASM ready — 2×2 game created'));
-        setStatus('ready');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-        setStatus('error');
+        const c = game.edgeCoord(edgeId);
+        return [c[0]!, c[1]!, c[2]!];
+      } catch {
+        return null;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    },
+    [game],
+  );
 
-  function playEdge(edge: number) {
-    if (!game) return;
-    try {
-      const result = game.play(edge);
-      const extraTurn = result[0] === 1;
-      const completed = result[1] ?? 0;
-      const msg = extraTurn
-        ? `Played #${edge} — claimed ${completed} box(es), extra turn`
-        : `Played #${edge}`;
-      setSnap(snapshotFrom(game, msg));
-    } catch (err) {
-      setSnap((prev) =>
-        prev
-          ? {
-              ...prev,
-              lastMessage: err instanceof Error ? err.message : String(err),
-            }
-          : prev,
-      );
-    }
-  }
+  const onEdgeClick = useCallback(
+    (edgeId: number) => {
+      const outcome = play(edgeId);
+      if (outcome) {
+        setLastMove(outcome);
+        playMove(outcome);
+      }
+    },
+    [play, playMove],
+  );
 
-  function newGame() {
-    const g = new WasmGame(2, 2);
-    setGame(g);
-    setSnap(snapshotFrom(g, 'New 2×2 game'));
-  }
+  const onNewGame = useCallback(
+    (size?: number) => {
+      if (size !== undefined) setBoardSize(size);
+      newGame(size);
+      setLastMove(null);
+      playNewGame();
+    },
+    [newGame, playNewGame, setBoardSize],
+  );
 
   return (
     <main className="app">
+      <MuteToggle />
       <p className="eyebrow">Dots and Boxes</p>
-      <h1>WASM core smoke test</h1>
-      <p className="lede">
-        Minimal UI that loads <code>@dab/dab-wasm</code>, creates a game, lists legal
-        moves, and applies plays. PixiJS board comes next.
-      </p>
+      <h1>Hotseat</h1>
+      <p className="lede">Two players, one screen. Click an edge to draw.</p>
 
       {status === 'loading' && <p className="status">Loading WASM…</p>}
       {status === 'error' && <p className="status error">Failed: {error}</p>}
 
       {status === 'ready' && snap && (
-        <section className="panel">
-          <p className="status ok">{snap.lastMessage}</p>
-          <dl className="stats">
-            <div>
-              <dt>Board</dt>
-              <dd>
-                {snap.rows}×{snap.cols}
-              </dd>
-            </div>
-            <div>
-              <dt>Turn</dt>
-              <dd>{playerLabel(snap.currentPlayer)}</dd>
-            </div>
-            <div>
-              <dt>Score</dt>
-              <dd>
-                P1 {snap.scoreP1} — P2 {snap.scoreP2}
-              </dd>
-            </div>
-            <div>
-              <dt>Winner</dt>
-              <dd>{winnerLabel(snap.winner)}</dd>
-            </div>
-          </dl>
+        <>
+          <section className="hud" aria-live="polite">
+            <dl className="stats">
+              <div>
+                <dt>Turn</dt>
+                <dd>
+                  {snap.isTerminal
+                    ? 'Game over'
+                    : playerLabel(snap.currentPlayer)}
+                </dd>
+              </div>
+              <div>
+                <dt>Score</dt>
+                <dd>
+                  <span className="score p1">P1 {snap.scoreP1}</span>
+                  <span className="score-sep">·</span>
+                  <span className="score p2">P2 {snap.scoreP2}</span>
+                </dd>
+              </div>
+            </dl>
 
-          <div className="actions">
-            <button type="button" onClick={newGame}>
-              New game
-            </button>
-          </div>
+            {snap.isTerminal && (
+              <p className="banner">
+                {snap.winner === 2
+                  ? 'Draw!'
+                  : `${winnerLabel(snap.winner)} wins`}
+              </p>
+            )}
 
-          <h2>Legal moves</h2>
-          {snap.isTerminal ? (
-            <p className="status">Game over — {winnerLabel(snap.winner)}</p>
-          ) : (
-            <ul className="moves">
-              {snap.legalMoves.map((edge) => (
-                <li key={edge}>
-                  <button type="button" onClick={() => playEdge(edge)}>
-                    #{edge}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+            <p className="status ok">{message}</p>
+
+            <div className="actions">
+              <label className="size-label">
+                Size
+                <select
+                  value={boardSize}
+                  onChange={(e) => {
+                    onNewGame(Number(e.target.value));
+                  }}
+                >
+                  {Array.from({ length: MAX_BOARD - MIN_BOARD + 1 }, (_, i) => {
+                    const n = MIN_BOARD + i;
+                    return (
+                      <option key={n} value={n}>
+                        {n}×{n}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <button type="button" onClick={() => onNewGame()}>
+                New game
+              </button>
+            </div>
+          </section>
+
+          <PixiBoard
+            snap={snap}
+            lastMove={lastMove}
+            onEdgeClick={onEdgeClick}
+            onEdgeHover={playHover}
+            edgeCoord={edgeCoord}
+          />
+
+          <p className="legend">
+            <span className="swatch p1" /> P1
+            <span className="swatch p2" /> P2
+          </p>
+        </>
       )}
     </main>
   );

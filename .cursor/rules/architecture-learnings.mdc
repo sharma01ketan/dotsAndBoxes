@@ -1,0 +1,58 @@
+---
+description: Architecture and simplicity lessons for the dotsAndBoxes web app
+alwaysApply: true
+---
+
+# dotsAndBoxes — architecture learnings
+
+## Prefer simple structure over speculative layers
+
+- Choose the **simplest approach that works** (local state / one store / presentational board).
+- Do **not** split into many tiny modules until a second caller appears.
+- Avoid barrel `index.ts` files that only re-export.
+- Avoid a second global store for one boolean (prefer `useSyncExternalStore` or lift state).
+- Delete unused helpers (e.g. debounce when only throttle is used).
+- Pure logic that needs tests can live in one small file; React/Howler stays beside it.
+
+Target web shape:
+
+```
+App.tsx                 # HUD + wiring
+game/store.ts           # Zustand + WasmGame + PlayOutcome
+board/PixiBoard.tsx     # render + hit-test + light motion
+board/layout.ts         # geometry
+board/motion.ts         # rAF tweens (KET-14)
+audio/sounds.ts         # catalog + pure SFX helpers
+audio/useGameSounds.ts  # use-sound + mute
+lib/wasmGame.ts         # WASM init
+```
+
+Polish motion: [`docs/specs/phase1-board-polish.md`](docs/specs/phase1-board-polish.md).
+
+## Keep dependencies one-way
+
+- **Rules** live in WASM/`dab-core`. The board never invents legality.
+- **Store** owns `WasmGame` and returns `PlayOutcome` from `play()`.
+- **App** maps outcomes → SFX and passes callbacks into Pixi.
+- **Pixi** only renders snapshots and emits `edgeId` click/hover.
+- **Audio** never imports into the store; game types may be imported by audio (`import type`).
+
+## Pixi + React StrictMode
+
+- Never call `Application.destroy()` before `await app.init()` finishes.
+- On cleanup before init: set a `cancelled` flag; destroy only after init in the async path.
+- Destroying mid-init throws (`_cancelResize is not a function`) and can blank `#root`.
+
+## Tasteful interaction polish
+
+- Hover preview color = **current player**, not a fixed accent.
+- Soft UI SFX: throttle hover (leading-edge), slight delay for win/tie after draw/claim.
+- Sticky mute early in tab order; game must work fully muted.
+- Prefer CC0 assets + `ATTRIBUTION.md` over hotlinking.
+- Edge hover SFX: **debounce ~90ms** and suppress after tap — a click fires pointerover then pointertap (and scene rebuild re-fires over); without this, the first click plays hover+draw.
+
+## Specs and tickets
+
+- Phase 1 board behavior: `docs/specs/phase1-hotseat-board.md`.
+- Polish (animations + sound): Linear **KET-14**.
+- When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.
