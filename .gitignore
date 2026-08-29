@@ -49,3 +49,6 @@ ai/models/
 *.onnx
 *.pt
 *.pth
+
+# Vercel CLI link (local only)
+.vercel
