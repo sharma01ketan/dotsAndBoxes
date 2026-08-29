@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter @dab/web build",
+  "outputDirectory": "web/dist",
+  "framework": "vite"
+}
