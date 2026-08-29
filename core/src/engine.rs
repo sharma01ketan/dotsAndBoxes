@@ -1,5 +1,6 @@
 //! Move engines: Random, Greedy (KET-15), CGT heuristic (KET-17).
 //!
+//! Exact search is [`crate::solver`] (KET-18).
 //! See `docs/specs/phase2-random-greedy-engines.md` and
 //! `docs/specs/phase2-cgt-heuristic.md`.
 
@@ -217,14 +218,14 @@ fn pick(rng: &mut XorShift64, items: &[EdgeId]) -> EdgeId {
     items[rng.gen_index(items.len())]
 }
 
-fn completed_count(pos: Position, edge: EdgeId) -> usize {
+pub(crate) fn completed_count(pos: Position, edge: EdgeId) -> usize {
     let mut probe = pos;
     let undo = probe.apply_move(edge).expect("legal edge must apply");
     undo.completed().len()
 }
 
 /// True if drawing `edge` leaves an adjacent unclaimed box with exactly 3 sides.
-fn leaves_three_sided(pos: Position, edge: EdgeId) -> bool {
+pub(crate) fn leaves_three_sided(pos: Position, edge: EdgeId) -> bool {
     let mut probe = pos;
     probe.apply_move(edge).expect("legal edge must apply");
 

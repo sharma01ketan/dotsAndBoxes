@@ -3,9 +3,11 @@
 //! API is deliberately data-oriented: indices, typed arrays, and small numeric
 //! codes — no rich JS objects — so the web app stays in control of UI state.
 
+use std::cell::RefCell;
+
 use dab_core::{
-    BoardGeom, CgtEngine, EdgeCoord, EdgeId, Engine, Game, GreedyEngine, MoveError, Orientation,
-    Player, RandomEngine, Winner,
+    is_perfect_hud_size, BoardGeom, CgtEngine, EdgeCoord, EdgeId, Engine, Game, GreedyEngine,
+    MoveError, Orientation, PerfectEngine, Player, RandomEngine, Winner,
 };
 use wasm_bindgen::prelude::*;
 
@@ -28,6 +30,16 @@ pub const POLICY_RANDOM: u8 = 0;
 pub const POLICY_GREEDY: u8 = 1;
 /// `choose_move` policy: CGT heuristic (double-cross / all-but-four).
 pub const POLICY_CGT: u8 = 2;
+/// `choose_move` policy: exact Perfect (2×2 / 3×3 only).
+pub const POLICY_PERFECT: u8 = 3;
+
+thread_local! {
+    static PERFECT: RefCell<PerfectEngine> = RefCell::new(PerfectEngine::new(1));
+}
+
+fn with_perfect<R>(f: impl FnOnce(&mut PerfectEngine) -> R) -> R {
+    PERFECT.with(|slot| f(&mut slot.borrow_mut()))
+}
 
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
@@ -202,7 +214,8 @@ impl WasmGame {
 
     /// Choose a legal edge without applying it.
     ///
-    /// `policy`: `0` = random, `1` = greedy, `2` = CGT. `seed` seeds the engine RNG.
+    /// `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+    /// `seed` seeds the engine RNG.
     #[wasm_bindgen(js_name = chooseMove)]
     pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue> {
         if self.inner.is_terminal() {
@@ -212,13 +225,33 @@ impl WasmGame {
             POLICY_RANDOM => RandomEngine::new(seed).choose(&self.inner),
             POLICY_GREEDY => GreedyEngine::new(seed).choose(&self.inner),
             POLICY_CGT => CgtEngine::new(seed).choose(&self.inner),
+            POLICY_PERFECT => {
+                let geom = self.inner.geom();
+                if !is_perfect_hud_size(geom.rows(), geom.cols()) {
+                    return Err(js_err("Perfect is only available on 2×2 and 3×3 boards"));
+                }
+                with_perfect(|engine| {
+                    engine.set_seed(seed);
+                    engine.choose(&self.inner)
+                })
+            }
             _ => {
                 return Err(js_err(format!(
-                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt)"
+                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt, 3=perfect)"
                 )));
             }
         };
         Ok(edge)
+    }
+
+    /// Box-difference margin for the side to move (2×2 / 3×3 only).
+    #[wasm_bindgen(js_name = perfectValue)]
+    pub fn perfect_value(&self) -> Result<i8, JsValue> {
+        let geom = self.inner.geom();
+        if !is_perfect_hud_size(geom.rows(), geom.cols()) {
+            return Err(js_err("Perfect is only available on 2×2 and 3×3 boards"));
+        }
+        Ok(with_perfect(|engine| engine.value(&self.inner)))
     }
 }
 
@@ -253,5 +286,19 @@ mod tests {
         let cgt = game.choose_move(POLICY_CGT, 11).unwrap();
         assert!(game.is_legal(cgt));
         assert!(!game.edge_is_drawn(cgt));
+
+        let perfect = game.choose_move(POLICY_PERFECT, 13).unwrap();
+        assert!(game.is_legal(perfect));
+        assert!(!game.edge_is_drawn(perfect));
+        assert_eq!(game.current_player(), 0);
+        assert_eq!(game.legal_moves().len(), game.edge_count() as usize);
+
+        let v = game.perfect_value().unwrap();
+        assert_eq!(
+            v,
+            dab_core::perfect_value(&dab_core::Game::new(
+                dab_core::BoardGeom::new(2, 2).unwrap()
+            ))
+        );
     }
 }

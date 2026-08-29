@@ -6,8 +6,10 @@ import {
   MAX_BOARD,
   MIN_BOARD,
   PLAY_MODES,
+  isPerfectHudSize,
   modeLede,
   modeTitle,
+  perfectSaysLine,
   scoreLabelP1,
   scoreLabelP2,
   useGameStore,
@@ -41,6 +43,7 @@ export default function App() {
   const mode = useGameStore((s) => s.mode);
   const aiBusy = useGameStore((s) => s.aiBusy);
   const snap = useGameStore((s) => s.snap);
+  const perfectMargin = useGameStore((s) => s.perfectMargin);
   const gameGeneration = useGameStore((s) => s.gameGeneration);
   const game = useGameStore((s) => s.game);
   const init = useGameStore((s) => s.init);
@@ -52,6 +55,7 @@ export default function App() {
   const { playHover, playMove, playNewGame } = useGameSounds();
   const [lastMove, setLastMove] = useState<PlayOutcome | null>(null);
   const [pendingMode, setPendingMode] = useState<PlayMode | null>(null);
+  const [pendingSize, setPendingSize] = useState<number | null>(null);
 
   useEffect(() => {
     void init();
@@ -115,6 +119,19 @@ export default function App() {
 
   const cancelModeChange = useCallback(() => {
     setPendingMode(null);
+  }, []);
+
+  const confirmSizeChange = useCallback(() => {
+    if (pendingSize === null) return;
+    setBoardSize(pendingSize);
+    setMode('vs-cgt');
+    setLastMove(null);
+    setPendingSize(null);
+    playNewGame();
+  }, [pendingSize, setBoardSize, setMode, playNewGame]);
+
+  const cancelSizeChange = useCallback(() => {
+    setPendingSize(null);
   }, []);
 
   const pendingModeLabel =
@@ -183,6 +200,14 @@ export default function App() {
             )}
 
             <p className="status ok">{message}</p>
+            {mode === 'vs-perfect' &&
+              perfectMargin !== null &&
+              snap &&
+              !snap.isTerminal && (
+                <p className="status ok">
+                  {perfectSaysLine(perfectMargin, snap.currentPlayer)}
+                </p>
+              )}
 
             <div className="actions">
               <label className="size-label" htmlFor="play-mode">
@@ -201,7 +226,11 @@ export default function App() {
                   }}
                 >
                   {PLAY_MODES.map((m) => (
-                    <option key={m.id} value={m.id}>
+                    <option
+                      key={m.id}
+                      value={m.id}
+                      disabled={m.id === 'vs-perfect' && !isPerfectHudSize(boardSize)}
+                    >
                       {m.label}
                     </option>
                   ))}
@@ -212,9 +241,14 @@ export default function App() {
                 <select
                   id="board-size"
                   aria-label="Board size"
-                  value={boardSize}
+                  value={pendingSize ?? boardSize}
                   onChange={(e) => {
-                    onNewGame(Number(e.target.value));
+                    const n = Number(e.target.value);
+                    if (mode === 'vs-perfect' && !isPerfectHudSize(n)) {
+                      setPendingSize(n);
+                      return;
+                    }
+                    onNewGame(n);
                   }}
                 >
                   {Array.from({ length: MAX_BOARD - MIN_BOARD + 1 }, (_, i) => {
@@ -277,6 +311,45 @@ export default function App() {
                   type="button"
                   className="modal-confirm"
                   onClick={confirmModeChange}
+                >
+                  Switch &amp; reset
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+      {pendingSize !== null &&
+        createPortal(
+          <div
+            className="modal-backdrop"
+            role="presentation"
+            onClick={cancelSizeChange}
+          >
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="size-switch-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="size-switch-title">Switch to Hard (CGT)?</h2>
+              <p>
+                Perfect only plays 2×2 and 3×3. Change to{' '}
+                <strong>Hard (CGT)</strong> at{' '}
+                <strong>
+                  {pendingSize}×{pendingSize}
+                </strong>{' '}
+                and start a new game? The current board will be reset.
+              </p>
+              <div className="modal-actions">
+                <button type="button" onClick={cancelSizeChange}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="modal-confirm"
+                  onClick={confirmSizeChange}
                 >
                   Switch &amp; reset
                 </button>

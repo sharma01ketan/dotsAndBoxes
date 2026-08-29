@@ -16,7 +16,7 @@ These are rungs 1–2 of the difficulty ladder in [`PLAN.md`](../../PLAN.md) §6
 
 - Web UI, WASM `chooseMove`, difficulty ladder wiring → [KET-20](https://linear.app/sharma01ketan/issue/KET-20).
 - CGT heuristic / double-cross → [KET-17](https://linear.app/sharma01ketan/issue/KET-17).
-- Exact solver / Perfect → [KET-18](https://linear.app/sharma01ketan/issue/KET-18).
+- Exact solver / Perfect → [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18).
 - Local MCTS → [KET-19](https://linear.app/sharma01ketan/issue/KET-19).
 - Theory overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
 - CLI `--p2 random|greedy` flags (nice-to-have; not required for Done).

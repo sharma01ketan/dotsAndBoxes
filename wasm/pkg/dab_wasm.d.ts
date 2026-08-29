@@ -15,7 +15,8 @@ export class WasmGame {
     /**
      * Choose a legal edge without applying it.
      *
-     * `policy`: `0` = random, `1` = greedy, `2` = CGT. `seed` seeds the engine RNG.
+     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+     * `seed` seeds the engine RNG.
      */
     chooseMove(policy: number, seed: bigint): number;
     /**
@@ -42,6 +43,10 @@ export class WasmGame {
      * Create a new game with `rows × cols` boxes.
      */
     constructor(rows: number, cols: number);
+    /**
+     * Box-difference margin for the side to move (2×2 / 3×3 only).
+     */
+    perfectValue(): number;
     /**
      * Play an edge. Returns `[extraTurn (0/1), completedCount, ...completedBoxIds]`.
      */
@@ -77,6 +82,7 @@ export interface InitOutput {
     readonly wasmgame_isTerminal: (a: number) => number;
     readonly wasmgame_legalMoves: (a: number) => [number, number];
     readonly wasmgame_new: (a: number, b: number) => [number, number, number];
+    readonly wasmgame_perfectValue: (a: number) => [number, number, number];
     readonly wasmgame_play: (a: number, b: number) => [number, number, number, number];
     readonly wasmgame_rows: (a: number) => number;
     readonly wasmgame_scoreP1: (a: number) => number;

@@ -16,6 +16,7 @@ export const wasmgame_isLegal: (a: number, b: number) => number;
 export const wasmgame_isTerminal: (a: number) => number;
 export const wasmgame_legalMoves: (a: number) => [number, number];
 export const wasmgame_new: (a: number, b: number) => [number, number, number];
+export const wasmgame_perfectValue: (a: number) => [number, number, number];
 export const wasmgame_play: (a: number, b: number) => [number, number, number, number];
 export const wasmgame_rows: (a: number) => number;
 export const wasmgame_scoreP1: (a: number) => number;

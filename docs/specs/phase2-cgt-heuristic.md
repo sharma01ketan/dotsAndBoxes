@@ -14,11 +14,11 @@ Depends on: [`phase2-cgt-endgame-analysis.md`](./phase2-cgt-endgame-analysis.md)
   region remains.
 - All-but-four: decline emptying a 4-loop while another long chain/loop remains.
 - Midgame: greedy capture/safe ladder, then steer long-chain **parity**.
-- Playable in the browser: WASM `policy = 2`, HUD **vs CGT**. Default stays vs Greedy.
+- Playable in the browser: WASM `policy = 2`, HUD **Hard (CGT)** (id `vs-cgt`). Default stays vs Greedy.
 
 ## Non-goals
 
-- Exact solver / Perfect → [KET-18](https://linear.app/sharma01ketan/issue/KET-18).
+- Exact solver / Perfect → [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18).
 - MCTS → [KET-19](https://linear.app/sharma01ketan/issue/KET-19).
 - Theory overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
 - Loony nimber / control-value tables beyond this heuristic.
@@ -97,10 +97,12 @@ legal-move lists (same as Greedy).
 |-------|--------|
 | `POLICY_CGT` | `2` |
 | `PlayMode` | `'vs-cgt'` |
-| Label | vs CGT |
-| Title | You vs CGT |
-| Score P2 | CPU (CGT) |
+| Label | Hard (CGT) (was vs CGT; id `vs-cgt`) |
+| Title | You vs Hard (CGT) |
+| Score P2 | CPU (Hard) |
 | Default mode | Unchanged: vs Greedy |
+
+HUD copy for Hard (CGT) ships with [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18).
 
 ## Acceptance
 
@@ -117,9 +119,9 @@ legal-move lists (same as Greedy).
 
 | Next | Uses this |
 |------|-----------|
-| KET-18 | Stronger Perfect rung |
+| [KET-18](./phase2-exact-solver.md) | Perfect search; CGT for **move ordering only**, never values |
 | KET-20 | Full ladder / worker |
-| KET-21 | Overlay can sit on the same vs-CGT board |
+| KET-21 | Overlay can sit on the same Hard (CGT) board |
 
 ## Files
 

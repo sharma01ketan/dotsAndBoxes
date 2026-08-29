@@ -33,7 +33,8 @@ export class WasmGame {
     /**
      * Choose a legal edge without applying it.
      *
-     * `policy`: `0` = random, `1` = greedy, `2` = CGT. `seed` seeds the engine RNG.
+     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+     * `seed` seeds the engine RNG.
      * @param {number} policy
      * @param {bigint} seed
      * @returns {number}
@@ -141,6 +142,17 @@ export class WasmGame {
         this.__wbg_ptr = ret[0];
         WasmGameFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * Box-difference margin for the side to move (2×2 / 3×3 only).
+     * @returns {number}
+     */
+    perfectValue() {
+        const ret = wasm.wasmgame_perfectValue(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0];
     }
     /**
      * Play an edge. Returns `[extraTurn (0/1), completedCount, ...completedBoxIds]`.

@@ -12,6 +12,7 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 
 - Mode control: **Opponent** | **vs Random** | **vs Greedy**
   (label rename; see [`opponent-mode-copy.md`](./opponent-mode-copy.md)).
+  Later: **Hard (CGT)** + **vs Perfect** — [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18).
 - Human is always **P1**; AI is **P2**.
 - WASM exposes `chooseMove`; JS still applies moves via existing `play`.
 - AI auto-plays on its turn (including capture chains / extra turns).
@@ -20,7 +21,8 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 ## Non-goals
 
 - Web Worker, per-move time budget, heavy thinking spinner (light status line OK).
-- CGT / MCTS / Perfect difficulties (full ladder stays on KET-20 later).
+- CGT / MCTS / Perfect difficulties (thin CGT HUD already shipped; Perfect →
+  [`phase2-exact-solver.md`](./phase2-exact-solver.md). Worker + 4×4 stays KET-20).
 - AI as P1 / swap sides.
 - Theory overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
 - Changing engine algorithms (those live in `dab-core` / KET-15).
@@ -32,7 +34,8 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 | Opponent | `hotseat` | Human | Human |
 | vs Random | `vs-random` | Human | `RandomEngine` |
 | vs Greedy | `vs-greedy` | Human | `GreedyEngine` |
-| vs CGT | `vs-cgt` | Human | `CgtEngine` (KET-17) |
+| vs CGT / **Hard (CGT)** | `vs-cgt` | Human | `CgtEngine` (KET-17); Hard copy → KET-18 |
+| vs Perfect | `vs-perfect` | Human | `PerfectEngine` (KET-18), 2×2 / 3×3 only |
 
 | Setting | Value |
 |---------|--------|
@@ -45,7 +48,7 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 Extend [`wasm/src/lib.rs`](../../wasm/src/lib.rs) on `WasmGame`:
 
 ```rust
-/// policy: 0 = random, 1 = greedy
+/// policy: 0 = random, 1 = greedy, 2 = CGT, 3 = Perfect (2×2/3×3)
 /// seed: deterministic ties / random choice
 /// Returns a legal edge id. Errors if terminal or unknown policy.
 #[wasm_bindgen(js_name = chooseMove)]
@@ -54,7 +57,7 @@ pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue>
 
 | Contract | Detail |
 |----------|--------|
-| Stateless choose | Construct a short-lived `RandomEngine` / `GreedyEngine` from `seed` each call |
+| Stateless choose | Construct a short-lived engine from `seed` each call (Random / Greedy / CGT / Perfect) |
 | Does not mutate turn | Does **not** call `play`; caller applies the returned edge |
 | Terminal | Return `JsValue` error; JS must not call when `isTerminal` |
 | Unknown policy | Error |
@@ -65,8 +68,8 @@ Rebuild `@dab/dab-wasm` as part of implementation (`pnpm build:wasm` or repo equ
 
 ```
 App
-├── mode control (Opponent | vs Random | vs Greedy)
-├── useGameStore → WasmGame (play + chooseMove)
+├── mode control (Opponent | vs Random | vs Greedy | Hard (CGT) | vs Perfect)
+├── useGameStore → WasmGame (play + chooseMove [+ perfectValue])
 └── PixiBoard (ignore clicks while AI turn)
 ```
 
@@ -106,9 +109,11 @@ sequenceDiagram
 ### HUD / copy
 
 - Mode control beside board size + New game.
-- vs AI: score labels **You** / **CPU (Random)** or **CPU (Greedy)**; turn shows
-  “Your turn” / “CPU thinking…” when `aiBusy`.
+- vs AI: score labels **You** / **CPU (Random)** or **CPU (Greedy)** (later
+  **CPU (Hard)** / **CPU (Perfect)**); turn shows “Your turn” / “CPU thinking…”
+  when `aiBusy`.
 - Title/lede: Opponent mode title is **Opponent**; vs AI e.g. “You vs Greedy”.
+  Perfect margin line → [`phase2-exact-solver.md`](./phase2-exact-solver.md).
 - Mute, size, New game behavior unchanged (New game keeps current mode).
 
 ## Acceptance
@@ -124,8 +129,8 @@ sequenceDiagram
 
 | Later | Extends this |
 |-------|----------------|
-| Full KET-20 | Web Worker, time budget, CGT/MCTS/Perfect entries |
-| KET-17 | Drop-in stronger `policy` once CGT engine exists |
+| [KET-18](./phase2-exact-solver.md) | `policy = 3`, vs Perfect, Hard (CGT) copy |
+| Full KET-20 | Web Worker, time budget, 4×4 search, MCTS entry |
 | KET-21 | Theory overlay on the same vs-AI board |
 
 ## Files

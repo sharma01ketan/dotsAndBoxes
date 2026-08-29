@@ -13,18 +13,24 @@ export const DEFAULT_BOARD = 3;
 export type GameStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Local Opponent (two humans) or human (P1) vs CPU (P2). Id `hotseat` is stable. */
-export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy' | 'vs-cgt';
+export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy' | 'vs-cgt' | 'vs-perfect';
 
 export const PLAY_MODES: { id: PlayMode; label: string }[] = [
   { id: 'hotseat', label: 'Opponent' },
   { id: 'vs-random', label: 'vs Random' },
   { id: 'vs-greedy', label: 'vs Greedy' },
-  { id: 'vs-cgt', label: 'vs CGT' },
+  { id: 'vs-cgt', label: 'Hard (CGT)' },
+  { id: 'vs-perfect', label: 'vs Perfect' },
 ];
 
 const POLICY_RANDOM = 0;
 const POLICY_GREEDY = 1;
 const POLICY_CGT = 2;
+const POLICY_PERFECT = 3;
+
+export function isPerfectHudSize(size: number): boolean {
+  return size === 2 || size === 3;
+}
 
 /** Result of a successful `play` — UI/SFX/motion consume this; rules stay in WASM. */
 export type PlayOutcome = {
@@ -100,6 +106,7 @@ function policyForMode(mode: PlayMode): number | null {
   if (mode === 'vs-random') return POLICY_RANDOM;
   if (mode === 'vs-greedy') return POLICY_GREEDY;
   if (mode === 'vs-cgt') return POLICY_CGT;
+  if (mode === 'vs-perfect') return POLICY_PERFECT;
   return null;
 }
 
@@ -124,6 +131,8 @@ type GameState = {
   game: WasmGame | null;
   edgeOwner: Int8Array;
   snap: GameSnapshot | null;
+  /** Side-to-move margin from `perfectValue()`, vs Perfect only. */
+  perfectMargin: number | null;
   init: () => Promise<void>;
   newGame: (size?: number) => void;
   setBoardSize: (size: number) => void;
@@ -185,6 +194,7 @@ function applyPlay(
       message: banner,
       moveCount: get().moveCount + 1,
     });
+    refreshPerfectMargin(get, set);
 
     return {
       edgeId: edge,
@@ -203,6 +213,28 @@ function applyPlay(
   }
 }
 
+function refreshPerfectMargin(
+  get: () => GameState,
+  set: (
+    partial:
+      | Partial<GameState>
+      | ((state: GameState) => Partial<GameState>),
+  ) => void,
+) {
+  const { game, mode, snap } = get();
+  if (mode !== 'vs-perfect' || !game || !snap || snap.isTerminal) {
+    if (get().perfectMargin !== null) {
+      set({ perfectMargin: null });
+    }
+    return;
+  }
+  try {
+    set({ perfectMargin: game.perfectValue() });
+  } catch {
+    set({ perfectMargin: null });
+  }
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   status: 'idle',
   error: null,
@@ -216,6 +248,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   game: null,
   edgeOwner: new Int8Array(0),
   snap: null,
+  perfectMargin: null,
 
   async init() {
     if (get().status === 'loading' || get().status === 'ready') return;
@@ -264,6 +297,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       gameGeneration: get().gameGeneration + 1,
       moveCount: 0,
     });
+    refreshPerfectMargin(get, set);
   },
 
   play(edge: number) {
@@ -326,7 +360,9 @@ export function modeTitle(mode: PlayMode): string {
     case 'vs-greedy':
       return 'You vs Greedy';
     case 'vs-cgt':
-      return 'You vs CGT';
+      return 'You vs Hard (CGT)';
+    case 'vs-perfect':
+      return 'You vs Perfect';
     default:
       return 'Opponent';
   }
@@ -339,7 +375,9 @@ export function modeLede(mode: PlayMode): string {
     case 'vs-greedy':
       return 'You are P1. The CPU takes free boxes and avoids giving them away.';
     case 'vs-cgt':
-      return 'You are P1. The CPU keeps chain control (double-cross / all-but-four).';
+      return 'You are P1. Hard keeps chain control (double-cross / all-but-four).';
+    case 'vs-perfect':
+      return 'Exact play on 2×2 / 3×3. General Dots & Boxes is PSPACE-complete.';
     default:
       return 'Two players, one screen. Click an edge to draw.';
   }
@@ -356,10 +394,20 @@ export function scoreLabelP2(mode: PlayMode): string {
     case 'vs-greedy':
       return 'CPU (Greedy)';
     case 'vs-cgt':
-      return 'CPU (CGT)';
+      return 'CPU (Hard)';
+    case 'vs-perfect':
+      return 'CPU (Perfect)';
     default:
       return 'P2';
   }
+}
+
+/** You-centric Perfect margin line (raw value is for the side to move). */
+export function perfectSaysLine(raw: number, currentPlayer: number): string {
+  const you = currentPlayer === 0 ? raw : -raw;
+  if (you === 0) return 'Perfect says 0';
+  const shown = you > 0 ? `+${you}` : `−${-you}`;
+  return `Perfect says you are ${shown}`;
 }
 
 export { playerLabel, winnerLabel };

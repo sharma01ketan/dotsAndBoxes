@@ -34,6 +34,7 @@ Target `dab-core` shape (rules + baseline engines):
 board.rs / bitboard.rs  # geometry + packed state
 moves.rs / game.rs      # legal play, undo, scoring, extra turn
 engine.rs               # Random + Greedy (KET-15) + CgtEngine (KET-17)
+solver.rs               # PerfectEngine (KET-18)
 cgt.rs                  # chains / loops / long-chain parity (KET-16)
 rng.rs                  # shared XorShift64 (engines + tests)
 ```
@@ -42,6 +43,7 @@ Polish motion: [`docs/specs/phase1-board-polish.md`](docs/specs/phase1-board-pol
 Engines: [`docs/specs/phase2-random-greedy-engines.md`](docs/specs/phase2-random-greedy-engines.md).
 CGT analysis: [`docs/specs/phase2-cgt-endgame-analysis.md`](docs/specs/phase2-cgt-endgame-analysis.md).
 CGT heuristic: [`docs/specs/phase2-cgt-heuristic.md`](docs/specs/phase2-cgt-heuristic.md).
+Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solver.md).
 
 ## Keep dependencies one-way
 

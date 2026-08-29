@@ -19,8 +19,8 @@ Depends on: existing `dab-core` rules (`Position` / `Game`). No engine policy.
 ## Non-goals
 
 - Double-cross / all-but-two move selection → [KET-17](https://linear.app/sharma01ketan/issue/KET-17).
-- Loony-value / control-value arithmetic beyond parity → KET-17 / [KET-18](https://linear.app/sharma01ketan/issue/KET-18).
-- Exact solver → KET-18.
+- Loony-value / control-value arithmetic beyond parity → KET-17 / [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18).
+- Exact solver → [`phase2-exact-solver.md`](./phase2-exact-solver.md) (KET-18; searches `Game`, not the dual).
 - WASM binding / Pixi overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
 - Changing Random/Greedy (KET-15).
 
@@ -177,8 +177,8 @@ verticals (or internals) undrawn.
 
 | Next   | Uses this for                                  |
 | ------ | ---------------------------------------------- |
-| KET-17 | Double-cross heuristic reads `EndgameAnalysis`; HUD **vs CGT** |
-| KET-18 | Exact solver over the same dual                |
+| KET-17 | Double-cross heuristic reads `EndgameAnalysis`; HUD **Hard (CGT)** |
+| [KET-18](./phase2-exact-solver.md) | Exact search on `Game`; CGT for move ordering only |
 | KET-21 | Overlay paints `Region.boxes` + parity         |
 
 
