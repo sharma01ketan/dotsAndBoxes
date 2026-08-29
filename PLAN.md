@@ -265,6 +265,8 @@ Each phase ends with something demoable.
   Spec for baseline engines: [`docs/specs/phase2-random-greedy-engines.md`](./docs/specs/phase2-random-greedy-engines.md) (KET-15).
 - Browser vs Random/Greedy (thin KET-20): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
 - Mode label **Opponent** (was Hotseat): [`docs/specs/opponent-mode-copy.md`](./docs/specs/opponent-mode-copy.md).
+- CGT endgame analysis (chains/loops/parity): [`docs/specs/phase2-cgt-endgame-analysis.md`](./docs/specs/phase2-cgt-endgame-analysis.md) (KET-16).
+- CGT heuristic / double-cross: [`docs/specs/phase2-cgt-heuristic.md`](./docs/specs/phase2-cgt-heuristic.md) (KET-17).
 - Exact solver (alpha-beta + TT + symmetry) for small boards → "Perfect" mode.
 - Local WASM MCTS for Medium/Hard-lite.
 - Theory overlay (chains/loops/parity) in the UI.

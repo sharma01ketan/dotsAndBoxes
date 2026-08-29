@@ -115,6 +115,7 @@ state unchanged.
 | Next ticket | Uses this work for |
 |-------------|-------------------|
 | Thin KET-20 | [`phase2-vs-ai-hotseat.md`](./phase2-vs-ai-hotseat.md) — WASM `chooseMove` + HUD vs Random/Greedy |
+| KET-16 | [`phase2-cgt-endgame-analysis.md`](./phase2-cgt-endgame-analysis.md) — chains/loops/parity |
 | KET-17 | Stronger heuristic; may share `Engine` trait |
 | Full KET-20 | Web Worker + full difficulty ladder (CGT/MCTS/Perfect) |
 | CLI (optional) | `--p2 random\|greedy` auto-play in `dab-cli` |

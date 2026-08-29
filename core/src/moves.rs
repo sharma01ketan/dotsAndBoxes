@@ -249,14 +249,11 @@ impl Position {
         let Some(edges) = self.geom().box_edges(row, col) else {
             return 0;
         };
-        edges
-            .into_iter()
-            .filter(|&e| self.edge_is_drawn(e))
-            .count() as u8
+        edges.into_iter().filter(|&e| self.edge_is_drawn(e)).count() as u8
     }
 }
 
-    #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::board::BoardGeom;

@@ -5,6 +5,7 @@
 
 pub mod bitboard;
 pub mod board;
+pub mod cgt;
 pub mod engine;
 pub mod game;
 pub mod moves;
@@ -12,7 +13,8 @@ pub mod rng;
 
 pub use bitboard::{BoxBits, EdgeBits, BOX_WORDS, EDGE_WORDS};
 pub use board::{BoardGeom, BoxId, EdgeCoord, EdgeId, Orientation, Position, MAX_COLS, MAX_ROWS};
-pub use engine::{Engine, GreedyEngine, RandomEngine};
+pub use cgt::{analyze_endgame, analyze_position, EndgameAnalysis, Region, RegionKind};
+pub use engine::{CgtEngine, Engine, GreedyEngine, RandomEngine};
 pub use game::{Game, GameUndo, PlayResult, Player, Winner};
 pub use moves::{CompletedBoxes, LegalMoves, MoveError, Undo, MAX_COMPLETED_PER_MOVE};
 pub use rng::XorShift64;

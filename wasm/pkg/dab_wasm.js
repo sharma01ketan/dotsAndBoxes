@@ -33,7 +33,7 @@ export class WasmGame {
     /**
      * Choose a legal edge without applying it.
      *
-     * `policy`: `0` = random, `1` = greedy. `seed` seeds the engine RNG.
+     * `policy`: `0` = random, `1` = greedy, `2` = CGT. `seed` seeds the engine RNG.
      * @param {number} policy
      * @param {bigint} seed
      * @returns {number}

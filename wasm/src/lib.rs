@@ -4,8 +4,8 @@
 //! codes — no rich JS objects — so the web app stays in control of UI state.
 
 use dab_core::{
-    BoardGeom, EdgeCoord, EdgeId, Engine, Game, GreedyEngine, MoveError, Orientation, Player,
-    RandomEngine, Winner,
+    BoardGeom, CgtEngine, EdgeCoord, EdgeId, Engine, Game, GreedyEngine, MoveError, Orientation,
+    Player, RandomEngine, Winner,
 };
 use wasm_bindgen::prelude::*;
 
@@ -26,6 +26,8 @@ pub const OWNER_NONE: i8 = -1;
 pub const POLICY_RANDOM: u8 = 0;
 /// `choose_move` policy: greedy (take boxes / avoid giving).
 pub const POLICY_GREEDY: u8 = 1;
+/// `choose_move` policy: CGT heuristic (double-cross / all-but-four).
+pub const POLICY_CGT: u8 = 2;
 
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
@@ -200,7 +202,7 @@ impl WasmGame {
 
     /// Choose a legal edge without applying it.
     ///
-    /// `policy`: `0` = random, `1` = greedy. `seed` seeds the engine RNG.
+    /// `policy`: `0` = random, `1` = greedy, `2` = CGT. `seed` seeds the engine RNG.
     #[wasm_bindgen(js_name = chooseMove)]
     pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue> {
         if self.inner.is_terminal() {
@@ -209,9 +211,10 @@ impl WasmGame {
         let edge = match policy {
             POLICY_RANDOM => RandomEngine::new(seed).choose(&self.inner),
             POLICY_GREEDY => GreedyEngine::new(seed).choose(&self.inner),
+            POLICY_CGT => CgtEngine::new(seed).choose(&self.inner),
             _ => {
                 return Err(js_err(format!(
-                    "unknown policy {policy} (0=random, 1=greedy)"
+                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt)"
                 )));
             }
         };
@@ -246,5 +249,9 @@ mod tests {
 
         let again = game.choose_move(POLICY_RANDOM, 7).unwrap();
         assert!(game.is_legal(again));
+
+        let cgt = game.choose_move(POLICY_CGT, 11).unwrap();
+        assert!(game.is_legal(cgt));
+        assert!(!game.edge_is_drawn(cgt));
     }
 }

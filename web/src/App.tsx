@@ -185,13 +185,18 @@ export default function App() {
             <p className="status ok">{message}</p>
 
             <div className="actions">
-              <label className="size-label">
+              <label className="size-label" htmlFor="play-mode">
                 Mode
                 <select
-                  value={mode}
+                  id="play-mode"
+                  aria-label="Play mode"
+                  value={pendingMode ?? mode}
                   onChange={(e) => {
                     const next = e.target.value as PlayMode;
-                    if (next === mode) return;
+                    if (next === mode) {
+                      setPendingMode(null);
+                      return;
+                    }
                     setPendingMode(next);
                   }}
                 >
@@ -202,9 +207,11 @@ export default function App() {
                   ))}
                 </select>
               </label>
-              <label className="size-label">
+              <label className="size-label" htmlFor="board-size">
                 Size
                 <select
+                  id="board-size"
+                  aria-label="Board size"
                   value={boardSize}
                   onChange={(e) => {
                     onNewGame(Number(e.target.value));

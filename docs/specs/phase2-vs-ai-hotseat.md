@@ -32,6 +32,7 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 | Opponent | `hotseat` | Human | Human |
 | vs Random | `vs-random` | Human | `RandomEngine` |
 | vs Greedy | `vs-greedy` | Human | `GreedyEngine` |
+| vs CGT | `vs-cgt` | Human | `CgtEngine` (KET-17) |
 
 | Setting | Value |
 |---------|--------|

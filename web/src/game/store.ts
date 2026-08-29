@@ -13,16 +13,18 @@ export const DEFAULT_BOARD = 3;
 export type GameStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Local Opponent (two humans) or human (P1) vs CPU (P2). Id `hotseat` is stable. */
-export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy';
+export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy' | 'vs-cgt';
 
 export const PLAY_MODES: { id: PlayMode; label: string }[] = [
   { id: 'hotseat', label: 'Opponent' },
   { id: 'vs-random', label: 'vs Random' },
   { id: 'vs-greedy', label: 'vs Greedy' },
+  { id: 'vs-cgt', label: 'vs CGT' },
 ];
 
 const POLICY_RANDOM = 0;
 const POLICY_GREEDY = 1;
+const POLICY_CGT = 2;
 
 /** Result of a successful `play` — UI/SFX/motion consume this; rules stay in WASM. */
 export type PlayOutcome = {
@@ -97,6 +99,7 @@ function snapshotFrom(
 function policyForMode(mode: PlayMode): number | null {
   if (mode === 'vs-random') return POLICY_RANDOM;
   if (mode === 'vs-greedy') return POLICY_GREEDY;
+  if (mode === 'vs-cgt') return POLICY_CGT;
   return null;
 }
 
@@ -322,6 +325,8 @@ export function modeTitle(mode: PlayMode): string {
       return 'You vs Random';
     case 'vs-greedy':
       return 'You vs Greedy';
+    case 'vs-cgt':
+      return 'You vs CGT';
     default:
       return 'Opponent';
   }
@@ -333,6 +338,8 @@ export function modeLede(mode: PlayMode): string {
       return 'You are P1. The CPU picks legal edges at random.';
     case 'vs-greedy':
       return 'You are P1. The CPU takes free boxes and avoids giving them away.';
+    case 'vs-cgt':
+      return 'You are P1. The CPU keeps chain control (double-cross / all-but-four).';
     default:
       return 'Two players, one screen. Click an edge to draw.';
   }
@@ -348,6 +355,8 @@ export function scoreLabelP2(mode: PlayMode): string {
       return 'CPU (Random)';
     case 'vs-greedy':
       return 'CPU (Greedy)';
+    case 'vs-cgt':
+      return 'CPU (CGT)';
     default:
       return 'P2';
   }
