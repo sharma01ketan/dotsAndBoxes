@@ -5,8 +5,17 @@ AlphaZero-style AI and a combinatorial-game-theory (CGT) engine that plays the
 endgame provably optimally. Every layer is chosen and tuned for performance, and
 the whole thing deploys as a web app.
 
-This document is the plan of record. It is meant to be reviewed and edited before
-we write code. Nothing here is built yet.
+This document is the plan of record for the **full** product (local vs-AI,
+then multiplayer, then AlphaZero). Phases are independently demoable.
+
+**Shipped (2026-08).** Phase 1 and the Phase 2 engine ladder are in git: WASM
+rules, Pixi Opponent / vs-AI board (Random, Greedy, Hard CGT, Perfect on 2×2
+and 3×3), Web Worker for `chooseMove` / `perfectValue` (KET-20). What is *not*
+shipped: theory overlay (KET-21), MCTS (KET-19), multiplayer, AlphaZero, GPU
+kernels.
+
+**Next.** [KET-47](https://linear.app/sharma01ketan/issue/KET-47) (CI).
+Do not start filling `server/` / `gpu/` / `ai/` until Phase 3–4 (KET-61).
 
 ---
 
@@ -49,9 +58,11 @@ Dots and Boxes is deceptively deep. The theory we lean on:
   the last two boxes of a chain to keep control. The engine implements this.
 - **Loony endgame theory (Berlekamp).** Exact evaluation of the "all long chains
   and loops" endgame via controlled-value / loony-move analysis.
-- **Exact solver.** For small boards (3×3 boxes fully; 4×4 with pruning + symmetry
-  + transposition tables) we compute game-theoretic values via alpha-beta over the
-  strings-and-coins graph. This backs "Perfect" difficulty.
+- **Exact solver.** For 2×2 and 3×3 boxes we search the real `Game` graph
+  (negamax + TT + D4/D2 symmetry). Grid D&B is not Demaine–Diomidov
+  strings-and-coins; the dual is for CGT *analysis*, not for Perfect values.
+  4×4+ stays off Perfect (PSPACE-complete). Empty 3×3 is a second-player win
+  by three (Barker & Korf).
 
 **Resume angle:** most game-AI projects are "MCTS on a board". This one combines a
 learned AlphaZero policy *and* a classical, provably-correct CGT endgame solver,
@@ -145,11 +156,15 @@ tooling lives.
 ## 6. AI system
 
 ### 6.1 Difficulty ladder
-1. **Random** — legal random move (baseline).
-2. **Greedy** — take free boxes; avoid giving away when possible.
-3. **CGT heuristic (Medium)** — long-chain parity + double-cross; classic strong play.
-4. **AlphaZero (Hard)** — CNN policy/value + MCTS.
-5. **Perfect (small boards)** — exact solver over strings-and-coins.
+1. **Random** — legal random move (baseline). **Shipped.**
+2. **Greedy** — take free boxes; avoid giving away when possible. **Shipped.** Default HUD mode.
+3. **CGT heuristic** — double-cross / all-but-four. PLAN originally called this
+   Medium. The HUD label is **Hard (CGT)** because AlphaZero is unbuilt. **Shipped.**
+   Parity is analyzed for the overlay (KET-21), not used to steer `CgtEngine`.
+4. **AlphaZero (Hard)** — CNN policy/value + MCTS. **Phase 4.** Local WASM MCTS
+   (KET-19) is the in-phase stand-in, after the Worker.
+5. **Perfect (2×2 / 3×3)** — exact `Game` search. **Shipped.** HUD search
+   runs in a Web Worker (KET-20).
 
 ### 6.2 AlphaZero pipeline
 - **Network:** small residual CNN over the edge/box grid → (policy over edges,
@@ -192,8 +207,8 @@ tooling lives.
 - **Rendering:** PixiJS scene for dots/edges/boxes; particle + tween animations
   for chain captures; `requestAnimationFrame`-driven, GPU-composited.
 - **Perf practices:** WASM core for validation/hints, memoized components, sprite
-  batching, avoid layout thrash, off-main-thread heavy compute (Web Worker for
-  MCTS/inference).
+  batching, avoid layout thrash, off-main-thread search (Web Worker for
+  Perfect / `chooseMove`, later MCTS).
 - **Theory overlay:** toggle to highlight chains/loops, show parity and predicted
   controller — the CGT teaching feature.
 - **Modes:** local hotseat, vs AI (pick difficulty), online ranked/casual,
@@ -252,7 +267,7 @@ Tooling: Cargo workspace for Rust crates; pnpm for the web app;
 
 Each phase ends with something demoable.
 
-### Phase 1 — Playable core (target of first milestone)
+### Phase 1 — Playable core — **done**
 - Rust core: board model, bitboards, legal moves, box completion, scoring.
 - WASM build of the core with a clean TS binding.
 - React + PixiJS board with local **Opponent** play (two humans, one screen; id `hotseat`).
@@ -261,17 +276,25 @@ Each phase ends with something demoable.
 - **Demo:** a polished, animated, playable game in the browser.
 
 ### Phase 2 — AI opponents + CGT
+**Shipped in core + HUD (KET-15–18 Done).**
 - Random, greedy, CGT-heuristic engines in the Rust core.
-  Spec for baseline engines: [`docs/specs/phase2-random-greedy-engines.md`](./docs/specs/phase2-random-greedy-engines.md) (KET-15).
-- Browser vs Random/Greedy (thin KET-20): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
+  Spec: [`docs/specs/phase2-random-greedy-engines.md`](./docs/specs/phase2-random-greedy-engines.md) (KET-15).
+- Browser vs Random/Greedy/Hard/Perfect (thin HUD): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
 - Mode label **Opponent** (was Hotseat): [`docs/specs/opponent-mode-copy.md`](./docs/specs/opponent-mode-copy.md).
 - CGT endgame analysis (chains/loops/parity): [`docs/specs/phase2-cgt-endgame-analysis.md`](./docs/specs/phase2-cgt-endgame-analysis.md) (KET-16).
-- CGT heuristic / double-cross: [`docs/specs/phase2-cgt-heuristic.md`](./docs/specs/phase2-cgt-heuristic.md) (KET-17).
-- Exact solver (alpha-beta + TT + symmetry) for 2×2 / 3×3 → **vs Perfect**: [`docs/specs/phase2-exact-solver.md`](./docs/specs/phase2-exact-solver.md) (KET-18). General D&B is PSPACE-complete; 4×4+ stays on KET-20.
-- Local WASM MCTS for Medium/Hard-lite.
-- Theory overlay (chains/loops/parity) in the UI.
-- **Demo:** single-player vs a genuinely strong, explainable AI. *(This is the
-  polished playable-vs-AI milestone you asked to prioritize.)*
+- CGT heuristic / double-cross: [`docs/specs/phase2-cgt-heuristic.md`](./docs/specs/phase2-cgt-heuristic.md) (KET-17). Follow-up: refuse/skip remnant (KET-58).
+- Exact solver for 2×2 / 3×3 → **vs Perfect**: [`docs/specs/phase2-exact-solver.md`](./docs/specs/phase2-exact-solver.md) (KET-18).
+
+**Still this phase (do these before Phase 3).**
+- Cancel vs-AI loop on New game; unstick `chooseMove` errors (KET-57). **Done.**
+- Web Worker so Perfect / CPU search never freeze the tab (KET-20). **Done.**
+- WASM boundary: `boxOwner` range check, panic hook, retry init (KET-59).
+- Pixi incremental claimed boxes + hover rewire (KET-60).
+- CI: debug + **release** `cargo test`, wasm-pkg diff vs source (KET-47).
+- Delete unused Phase 3/4 stub crates until those phases start (KET-61).
+- Local WASM MCTS for Medium/Hard-lite (KET-19) — **after** the Worker.
+- Theory overlay (chains/loops/parity) in the UI (KET-21). Analysis API exists.
+- **Demo:** single-player vs a genuinely strong, explainable AI, **without jank**.
 
 ### Phase 3 — Realtime multiplayer
 - Rust axum WS server linking the core; binary protocol.
@@ -297,8 +320,12 @@ Each phase ends with something demoable.
 ## 13. Risks & mitigations
 - **Scope creep.** Phases are independently demoable; we can stop after any phase
   and still have a strong project.
+- **Off-thread search.** Perfect / `chooseMove` run in a Worker (KET-20). Keep
+  `runAiTurn` bound to `gameGeneration` (KET-57). Do not add more search on
+  the UI thread.
 - **WASM/JS interop friction.** Keep the WASM API small and data-oriented
-  (indices and typed arrays, not rich objects).
+  (indices and typed arrays, not rich objects). Range-check every index at the
+  binding (`boxOwner` today does not).
 - **AlphaZero training cost on M1.** Board and net are small; start with the
   smallest board that is still interesting (e.g., 3×3 boxes) and scale up.
 - **WebGPU browser support.** Provide a WASM-CPU fallback for the AI so the app
@@ -319,7 +346,8 @@ Each phase ends with something demoable.
 ---
 
 ## 15. Open questions (to resolve before/along the way)
-1. Default board size for v1 (3×3 vs 5×5 boxes)? Affects solver + net scope.
+1. Default board size for v1 — **settled: 3×3 boxes** (`DEFAULT_BOARD`). Perfect
+   HUD is 2×2/3×3 only. 5×5 is playable vs Greedy/Hard, not vs Perfect.
 2. Auth: anonymous handles first, add real auth later? Or require login for ranked?
 3. Rating system: Elo (simple) vs Glicko-2 (better, more work)?
 4. Server-side vs client-only neural inference for ranked integrity?

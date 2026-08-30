@@ -23,9 +23,9 @@ Depends on: [`Game`](../../core/src/game.rs) apply/undo, [`Engine`](../../core/s
 
 ## Non-goals
 
-- 4×4 / 5×5 Perfect (exponential; Worker + time cap → [KET-20](https://linear.app/sharma01ketan/issue/KET-20)).
+- 4×4 / 5×5 Perfect (exponential; time cap still later).
 - Silently falling back to CGT while still saying Perfect.
-- Web Worker / per-move time budget → KET-20.
+- Per-move time budget. Worker for 2×2 / 3×3 search shipped in [KET-20](https://linear.app/sharma01ketan/issue/KET-20).
 - Hardness gadgets from Buchin et al. (proof only).
 - Nimstring / CGT nimbers.
 - Theory overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
@@ -161,8 +161,8 @@ Perfect is available **only** at 2×2 and 3×3.
 Zero: `Perfect says 0` (or `Perfect says you are 0`). Refresh after each
 applied move (human or CPU) while vs Perfect and not terminal.
 
-3×3 search must stay on the main thread without jank (TT + symmetry). No
-Worker this ticket.
+3×3 search runs in a Web Worker (KET-20). Mute, New game, and hover stay
+live while it thinks. No per-move time budget this ticket.
 
 ## Acceptance
 
@@ -181,7 +181,7 @@ Worker this ticket.
 
 | Next | Uses this |
 |------|-----------|
-| KET-20 | 4×4 time-capped search in a Worker; full ladder; never label a timeout as Perfect |
+| KET-20 | Worker for 3×3 search — shipped; 4×4 time cap still later; never label a timeout as Perfect |
 | KET-21 | Overlay can show control / loony; margin line is a preview of that teaching HUD |
 | KET-19 | MCTS is a different rung; do not use Perfect as a stub for it |
 

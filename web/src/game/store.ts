@@ -5,6 +5,8 @@ import {
   winnerLabel,
   WasmGame,
 } from '../lib/wasmGame';
+import { getAiEngine, initAiEngine } from './aiClient';
+import { cpuToMove, runAiTurnLoop, sleep } from './aiTurn';
 
 export const MIN_BOARD = 2;
 export const MAX_BOARD = 5;
@@ -110,10 +112,11 @@ function policyForMode(mode: PlayMode): number | null {
   return null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+/** Live abort for the in-flight `runAiTurn` (not React state). */
+let aiAbort: AbortController | null = null;
+
+function abortAiTurn() {
+  aiAbort?.abort();
 }
 
 type GameState = {
@@ -132,7 +135,7 @@ type GameState = {
   edgeOwner: Int8Array;
   snap: GameSnapshot | null;
   /** Side-to-move margin from `perfectValue()`, vs Perfect only. */
-  perfectMargin: number | null;
+  perfectMargin: number | 'computing' | null;
   init: () => Promise<void>;
   newGame: (size?: number) => void;
   setBoardSize: (size: number) => void;
@@ -194,6 +197,15 @@ function applyPlay(
       message: banner,
       moveCount: get().moveCount + 1,
     });
+    const generation = get().gameGeneration;
+    void getAiEngine()
+      .play(edge)
+      .catch((err: unknown) => {
+        if (get().gameGeneration !== generation) return;
+        set({
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
     refreshPerfectMargin(get, set);
 
     return {
@@ -221,18 +233,35 @@ function refreshPerfectMargin(
       | ((state: GameState) => Partial<GameState>),
   ) => void,
 ) {
-  const { game, mode, snap } = get();
-  if (mode !== 'vs-perfect' || !game || !snap || snap.isTerminal) {
+  const { mode, snap } = get();
+  if (mode !== 'vs-perfect' || !snap || snap.isTerminal) {
     if (get().perfectMargin !== null) {
       set({ perfectMargin: null });
     }
     return;
   }
-  try {
-    set({ perfectMargin: game.perfectValue() });
-  } catch {
-    set({ perfectMargin: null });
+  const generation = get().gameGeneration;
+  const moves = get().moveCount;
+  set({ perfectMargin: 'computing' });
+  // CPU chooseMove is the search for this seat; don't enqueue a second
+  // perfectValue behind it on the same worker.
+  if (snap.currentPlayer === 1) {
+    return;
   }
+  void getAiEngine()
+    .perfectValue()
+    .then((value) => {
+      if (get().gameGeneration !== generation || get().moveCount !== moves) {
+        return;
+      }
+      set({ perfectMargin: value });
+    })
+    .catch(() => {
+      if (get().gameGeneration !== generation || get().moveCount !== moves) {
+        return;
+      }
+      set({ perfectMargin: null });
+    });
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -255,6 +284,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ status: 'loading', error: null });
     try {
       await initWasm();
+      await initAiEngine();
       get().newGame(get().boardSize);
       set({ status: 'ready', message: 'Ready — click an edge to play' });
     } catch (err) {
@@ -276,6 +306,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   newGame(size?: number) {
+    abortAiTurn();
     const prev = get().game;
     if (prev) {
       prev.free();
@@ -292,11 +323,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       snap: snapshotFrom(game, edgeOwner),
       message: `New ${clamped}×${clamped} ${PLAY_MODES.find((m) => m.id === mode)?.label ?? mode}`,
       error: null,
-      aiBusy: false,
       gameSeed: (get().gameSeed + 0x9e37_79b9) >>> 0 || 1,
       gameGeneration: get().gameGeneration + 1,
       moveCount: 0,
     });
+    const generation = get().gameGeneration;
+    void getAiEngine()
+      .newGame(clamped)
+      .catch((err: unknown) => {
+        if (get().gameGeneration !== generation) return;
+        set({
+          error: err instanceof Error ? err.message : String(err),
+          status: 'error',
+        });
+      });
     refreshPerfectMargin(get, set);
   },
 
@@ -310,45 +350,67 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   async runAiTurn(pauseMs, onStep) {
-    const policy = policyForMode(get().mode);
+    const startedMode = get().mode;
+    const policy = policyForMode(startedMode);
     if (policy === null) return;
     if (get().aiBusy) return;
+    if (!cpuToMove(get().snap, policy)) return;
 
-    const needsAi = () => {
-      const s = get().snap;
-      return (
-        !!s &&
-        !s.isTerminal &&
-        s.currentPlayer === 1 &&
-        policyForMode(get().mode) !== null
-      );
-    };
-
-    if (!needsAi()) return;
+    abortAiTurn();
+    const ac = new AbortController();
+    aiAbort = ac;
+    const startedGeneration = get().gameGeneration;
 
     set({ aiBusy: true, message: 'CPU thinking…' });
     try {
-      while (needsAi()) {
-        const { game, gameSeed, moveCount } = get();
-        if (!game) break;
-        const seed = BigInt(gameSeed) + BigInt(moveCount) * 0x100000001b3n;
-        let edge: number;
-        try {
-          edge = game.chooseMove(policy, seed);
-        } catch (err) {
-          set({
-            message: err instanceof Error ? err.message : String(err),
-          });
-          break;
-        }
-        const outcome = applyPlay(get, set, edge);
-        if (!outcome) break;
-        onStep(outcome);
-        if (outcome.isTerminal) break;
-        await sleep(pauseMs);
+      await sleep(0, ac.signal);
+      if (
+        ac.signal.aborted ||
+        get().gameGeneration !== startedGeneration ||
+        get().mode !== startedMode
+      ) {
+        return;
       }
+      await runAiTurnLoop(
+        {
+          startedGeneration,
+          startedMode,
+          getGeneration: () => get().gameGeneration,
+          getMode: () => get().mode,
+          getSnap: () => get().snap,
+          getGame: () => ({
+            chooseMove: (policy, seed) =>
+              getAiEngine().chooseMove(policy, seed),
+          }),
+          getSeed: () => ({
+            gameSeed: get().gameSeed,
+            moveCount: get().moveCount,
+          }),
+          applyPlay: (edge) => applyPlay(get, set, edge),
+          onRecoverableFail: (message) => {
+            if (
+              get().gameGeneration !== startedGeneration ||
+              get().mode !== startedMode
+            ) {
+              return;
+            }
+            get().newGame();
+            set({
+              message: `CPU failed — started a new game. ${message}`,
+            });
+          },
+          signal: ac.signal,
+        },
+        policy,
+        pauseMs,
+        onStep,
+        sleep,
+      );
     } finally {
-      set({ aiBusy: false });
+      if (aiAbort === ac) {
+        aiAbort = null;
+        set({ aiBusy: false });
+      }
     }
   },
 }));

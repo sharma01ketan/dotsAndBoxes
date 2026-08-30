@@ -120,7 +120,7 @@ HUD copy for Hard (CGT) ships with [`phase2-exact-solver.md`](./phase2-exact-sol
 | Next | Uses this |
 |------|-----------|
 | [KET-18](./phase2-exact-solver.md) | Perfect search; CGT for **move ordering only**, never values |
-| KET-20 | Full ladder / worker |
+| KET-20 | Worker for Perfect / `chooseMove` — shipped |
 | KET-21 | Overlay can sit on the same Hard (CGT) board |
 
 ## Files

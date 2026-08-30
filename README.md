@@ -1,72 +1,85 @@
 # Dots and Boxes
 
-Realtime multiplayer **Dots and Boxes** with a CGT endgame solver and an
-AlphaZero-style AI. Full design: [PLAN.md](./PLAN.md).
+Local **Opponent** and vs-AI Dots and Boxes in the browser. Rules live in Rust
+(`dab-core`) and run in WASM. The board is PixiJS. Full roadmap (multiplayer,
+AlphaZero, GPU) is in [PLAN.md](./PLAN.md). That document is the vision for
+later phases, not a description of what `main` ships today.
 
 ## Layout
 
 ```
 dotsAndBoxes/
 ├─ PLAN.md
-├─ core/            # Rust: shared game engine + solver
-├─ wasm/            # Rust → WASM bindings (package @dab/dab-wasm)
-├─ cli/             # Rust: terminal hotseat playground
-├─ server/          # Rust: axum WebSocket backend
-├─ gpu/             # Rust: wgpu/WGSL compute kernels
-├─ web/             # React + TypeScript + PixiJS frontend
-├─ ai/              # Python: training, self-play, ONNX export
-├─ proto/           # shared protocol definitions
-├─ infra/           # Docker, CI, deploy, Grafana
-└─ docs/            # architecture notes, CGT writeups
+├─ core/            # Rust: rules, engines, exact solver
+├─ wasm/            # Rust → WASM (@dab/dab-wasm)
+├─ cli/             # Optional ASCII playground
+├─ server/          # Stub — Phase 3
+├─ gpu/             # Stub — Phase 4
+├─ web/             # React + TypeScript + PixiJS
+├─ ai/              # Stub — Phase 4
+├─ proto/           # Empty — Phase 3
+├─ infra/           # Empty; deploy is root vercel.json
+└─ docs/specs/      # Phase 1–2 specs
 ```
 
 | Area | Path | Status |
 |------|------|--------|
-| Shared game core | `core/` | Rules + bitboards (playable via CLI) |
-| WASM bindings | `wasm/` | `@dab/dab-wasm` for the browser |
-| Terminal playground | `cli/` | Hotseat REPL to validate the core |
-| Realtime server | `server/` | Stub (Rust) |
-| GPU kernels | `gpu/` | Stub (Rust) |
-| Web UI | `web/` | Opponent / vs-AI PixiJS board + WASM |
-| AI training | `ai/` | Stub (Python) |
-| Protocol | `proto/` | Placeholder |
-| Infra | `infra/` | Placeholder |
-| Docs | `docs/` | Placeholder |
+| Shared game core | `core/` | Rules, Random/Greedy/CGT/Perfect |
+| WASM bindings | `wasm/` | `@dab/dab-wasm` |
+| Terminal playground | `cli/` | Optional REPL (`cargo test -p dab-core` is the real check) |
+| Realtime server | `server/` | Stub (Phase 3) |
+| GPU kernels | `gpu/` | Stub (Phase 4) |
+| Web UI | `web/` | Opponent / vs-AI Pixi board |
+| AI training | `ai/` | Stub (Phase 4) |
+| Protocol | `proto/` | Empty |
+| Infra | `infra/` | Empty; Vercel at repo root |
+| Docs | `docs/specs/` | Phase 1–2 specs |
 
 ## Prerequisites
 
 - **Rust** stable + `wasm32-unknown-unknown` + [`wasm-pack`](https://rustwasm.github.io/wasm-pack/)
 - **Node.js** 20+ and **pnpm** 9+
-- **Python** 3.11+ (optional [uv](https://github.com/astral-sh/uv))
+- **Python** 3.11+ only if you touch the Phase 4 stub
 
 ## Quick start
 
 ```bash
-# Rust workspace
-cargo build
-cargo test
-cargo run -p dab-server
-
-# Terminal hotseat playground (validates dab-core)
-cargo run -p dab-cli
-cargo run -p dab-cli -- --rows 3 --cols 3
-
-# WASM + web (browser can call the core)
-pnpm build:wasm
 pnpm install
-pnpm --filter @dab/web build
 pnpm dev
 ```
 
-Open http://localhost:5173 — you should see scores, legal move buttons, and plays updating via WASM.
+Open http://localhost:5173 — Pixi board, scores, Opponent / vs-AI modes.
+
+Rebuild WASM after `core/` or `wasm/` changes:
+
+```bash
+pnpm build:wasm
+```
+
+Core tests (debug is fast; release includes empty 3×3 Perfect):
+
+```bash
+cargo test --workspace
+cargo test -p dab-core --release
+```
+
+Optional ASCII playground:
+
+```bash
+cargo run -p dab-cli -- --rows 3 --cols 3
+```
 
 See [cli/README.md](./cli/README.md) and [wasm/README.md](./wasm/README.md).
+
+## Next
+
+See PLAN.md §12 Phase 2 remaining, or Linear: [KET-57](https://linear.app/sharma01ketan/issue/KET-57) (AI loop), [KET-20](https://linear.app/sharma01ketan/issue/KET-20) (Worker), [KET-47](https://linear.app/sharma01ketan/issue/KET-47) (CI).
 
 ## Tooling
 
 - Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`, `server`, `gpu`)
 - JS/TS: pnpm workspace (`web`, `wasm/pkg`), Prettier, ESLint
-- Python: `ai/pyproject.toml` (hatchling, uv-compatible)
+- Python: `ai/pyproject.toml` (scaffold only)
 
 ## License
 

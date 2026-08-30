@@ -19,6 +19,8 @@ Target web shape:
 ```
 App.tsx                 # HUD + wiring
 game/store.ts           # Zustand + WasmGame + PlayOutcome
+game/aiWorker.ts        # WASM chooseMove / perfectValue (KET-20)
+game/aiClient.ts        # main-thread queue over the worker
 board/PixiBoard.tsx     # render + hit-test + light motion
 board/edgeHoverSfx.ts   # hover SFX state machine (tested)
 board/layout.ts         # geometry
@@ -49,6 +51,11 @@ Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solv
 
 - **Rules** live in WASM/`dab-core`. The board never invents legality.
 - **Store** owns `WasmGame` and returns `PlayOutcome` from `play()`.
+- **`runAiTurn` must be bound to `gameGeneration`.** `newGame` bumping
+  generation is not enough if an in-flight loop still `chooseMove`s after
+  `sleep`. Capture generation at start; abort on mismatch (KET-57).
+- **Perfect / `chooseMove` run in a Web Worker (KET-20).** Do not add
+  more search (MCTS, overlay) on the main thread.
 - **App** maps outcomes → SFX and passes callbacks into Pixi.
 - **Pixi** only renders snapshots and emits `edgeId` click/hover.
 - **Audio** never imports into the store; game types may be imported by audio (`import type`).
@@ -75,6 +82,8 @@ Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solv
 
 - Phase 1 board behavior: `docs/specs/phase1-hotseat-board.md`.
 - Polish (animations + sound): Linear **KET-14**.
-- vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (thin KET-20).
+- vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (Worker: KET-20).
 - Mode copy: local two-human label is **Opponent** (`PlayMode` id stays `hotseat`); see `docs/specs/opponent-mode-copy.md`.
+- Do **not** fill `server/` / `gpu/` / `ai/` / `proto/` / `infra/` until those
+  phases start (KET-61). `vercel.json` at repo root is the deploy config.
 - When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.

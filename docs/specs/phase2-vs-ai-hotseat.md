@@ -20,9 +20,10 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 
 ## Non-goals
 
-- Web Worker, per-move time budget, heavy thinking spinner (light status line OK).
+- Per-move time budget, heavy thinking spinner (light status line OK).
+  `chooseMove` / `perfectValue` Worker shipped in KET-20; 4×4 time cap stays later.
 - CGT / MCTS / Perfect difficulties (thin CGT HUD already shipped; Perfect →
-  [`phase2-exact-solver.md`](./phase2-exact-solver.md). Worker + 4×4 stays KET-20).
+  [`phase2-exact-solver.md`](./phase2-exact-solver.md)).
 - AI as P1 / swap sides.
 - Theory overlay → [KET-21](https://linear.app/sharma01ketan/issue/KET-21).
 - Changing engine algorithms (those live in `dab-core` / KET-15).
@@ -130,7 +131,8 @@ sequenceDiagram
 | Later | Extends this |
 |-------|----------------|
 | [KET-18](./phase2-exact-solver.md) | `policy = 3`, vs Perfect, Hard (CGT) copy |
-| Full KET-20 | Web Worker, time budget, 4×4 search, MCTS entry |
+| Worker (KET-20) | `chooseMove` / `perfectValue` off the UI thread — shipped |
+| Later | 4×4 time budget, MCTS entry |
 | KET-21 | Theory overlay on the same vs-AI board |
 
 ## Files

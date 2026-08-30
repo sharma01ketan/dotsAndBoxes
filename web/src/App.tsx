@@ -81,22 +81,20 @@ export default function App() {
     });
   }, [runAiTurn, playMove]);
 
+  useEffect(() => {
+    if (mode === 'hotseat') return;
+    if (!snap || snap.isTerminal || snap.currentPlayer !== 1) return;
+    kickAi();
+  }, [mode, snap, gameGeneration, kickAi]);
+
   const onEdgeClick = useCallback(
     (edgeId: number) => {
       const outcome = play(edgeId);
       if (!outcome) return;
       setLastMove(outcome);
       playMove(outcome);
-      if (
-        !outcome.isTerminal &&
-        mode !== 'hotseat' &&
-        useGameStore.getState().snap?.currentPlayer === 1
-      ) {
-        // Let claim/draw animation start before CPU moves.
-        window.setTimeout(kickAi, 0);
-      }
     },
-    [play, playMove, mode, kickAi],
+    [play, playMove],
   );
 
   const onNewGame = useCallback(
@@ -201,11 +199,13 @@ export default function App() {
 
             <p className="status ok">{message}</p>
             {mode === 'vs-perfect' &&
-              perfectMargin !== null &&
               snap &&
-              !snap.isTerminal && (
+              !snap.isTerminal &&
+              perfectMargin != null && (
                 <p className="status ok">
-                  {perfectSaysLine(perfectMargin, snap.currentPlayer)}
+                  {perfectMargin === 'computing'
+                    ? 'Perfect is solving…'
+                    : perfectSaysLine(perfectMargin, snap.currentPlayer)}
                 </p>
               )}
 
