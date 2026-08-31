@@ -7,8 +7,11 @@ export function easeOutCubic(t: number): number {
 export type TweenHandle = { cancel: () => void };
 
 export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const g = globalThis as typeof globalThis & {
+    matchMedia?: (query: string) => { matches: boolean };
+  };
+  if (typeof g.matchMedia !== 'function') return false;
+  return g.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**

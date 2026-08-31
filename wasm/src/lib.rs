@@ -6,8 +6,9 @@
 use std::cell::RefCell;
 
 use dab_core::{
-    is_perfect_hud_size, BoardGeom, CgtEngine, EdgeCoord, EdgeId, Engine, Game, GreedyEngine,
-    MoveError, Orientation, PerfectEngine, Player, RandomEngine, Winner,
+    is_perfect_hud_size as core_is_perfect_hud_size, BoardGeom, CgtEngine, EdgeCoord, EdgeId,
+    Engine, Game, GreedyEngine, MoveError, Orientation, PerfectEngine, Player, RandomEngine,
+    Winner,
 };
 use wasm_bindgen::prelude::*;
 
@@ -33,6 +34,32 @@ pub const POLICY_CGT: u8 = 2;
 /// `choose_move` policy: exact Perfect (2×2 / 3×3 only).
 pub const POLICY_PERFECT: u8 = 3;
 
+#[wasm_bindgen(js_name = POLICY_RANDOM)]
+pub fn policy_random() -> u8 {
+    POLICY_RANDOM
+}
+
+#[wasm_bindgen(js_name = POLICY_GREEDY)]
+pub fn policy_greedy() -> u8 {
+    POLICY_GREEDY
+}
+
+#[wasm_bindgen(js_name = POLICY_CGT)]
+pub fn policy_cgt() -> u8 {
+    POLICY_CGT
+}
+
+#[wasm_bindgen(js_name = POLICY_PERFECT)]
+pub fn policy_perfect() -> u8 {
+    POLICY_PERFECT
+}
+
+/// Square 2×2 / 3×3 only. HUD and `chooseMove(3)` share this.
+#[wasm_bindgen(js_name = isPerfectHudSize)]
+pub fn is_perfect_hud_size(rows: u8, cols: u8) -> bool {
+    core_is_perfect_hud_size(rows, cols)
+}
+
 thread_local! {
     static PERFECT: RefCell<PerfectEngine> = RefCell::new(PerfectEngine::new(1));
 }
@@ -43,8 +70,7 @@ fn with_perfect<R>(f: impl FnOnce(&mut PerfectEngine) -> R) -> R {
 
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
-    // Keep panics visible in the browser console once console_error_panic_hook
-    // is optional; for now rely on wasm-bindgen's default.
+    console_error_panic_hook::set_once();
 }
 
 fn js_err(msg: impl Into<String>) -> JsValue {
@@ -145,9 +171,12 @@ impl WasmGame {
         self.inner.position().edge_is_drawn(edge)
     }
 
-    /// `-1` unclaimed, `0` P1, `1` P2.
+    /// `-1` unclaimed or out of range, `0` P1, `1` P2.
     #[wasm_bindgen(js_name = boxOwner)]
     pub fn box_owner(&self, box_id: u16) -> i8 {
+        if box_id >= self.box_count() {
+            return OWNER_NONE;
+        }
         match self.inner.box_owner(box_id) {
             None => OWNER_NONE,
             Some(Player::P1) => 0,
@@ -227,7 +256,7 @@ impl WasmGame {
             POLICY_CGT => CgtEngine::new(seed).choose(&self.inner),
             POLICY_PERFECT => {
                 let geom = self.inner.geom();
-                if !is_perfect_hud_size(geom.rows(), geom.cols()) {
+                if !core_is_perfect_hud_size(geom.rows(), geom.cols()) {
                     return Err(js_err("Perfect is only available on 2×2 and 3×3 boards"));
                 }
                 with_perfect(|engine| {
@@ -248,7 +277,7 @@ impl WasmGame {
     #[wasm_bindgen(js_name = perfectValue)]
     pub fn perfect_value(&self) -> Result<i8, JsValue> {
         let geom = self.inner.geom();
-        if !is_perfect_hud_size(geom.rows(), geom.cols()) {
+        if !core_is_perfect_hud_size(geom.rows(), geom.cols()) {
             return Err(js_err("Perfect is only available on 2×2 and 3×3 boards"));
         }
         Ok(with_perfect(|engine| engine.value(&self.inner)))
@@ -300,5 +329,35 @@ mod tests {
                 dab_core::BoardGeom::new(2, 2).unwrap()
             ))
         );
+    }
+
+    #[test]
+    fn box_owner_oob_is_none_and_does_not_panic() {
+        let game = WasmGame::new(2, 2).unwrap();
+        assert_eq!(game.box_count(), 4);
+        assert_eq!(game.box_owner(0), OWNER_NONE);
+        assert_eq!(game.box_owner(game.box_count()), OWNER_NONE);
+        assert_eq!(game.box_owner(200), OWNER_NONE);
+        assert!(!game.edge_is_drawn(game.edge_count()));
+    }
+
+    #[test]
+    fn box_owner_claimed_is_player_code() {
+        let mut game = WasmGame::new(1, 1).unwrap();
+        assert_eq!(game.box_owner(0), OWNER_NONE);
+        for edge in 0..4 {
+            game.play(edge).unwrap();
+        }
+        assert!(game.is_terminal());
+        assert_eq!(game.box_owner(0), 1);
+    }
+
+    #[test]
+    fn perfect_hud_size_rejects_4x4() {
+        let game = WasmGame::new(4, 4).unwrap();
+        assert!(!is_perfect_hud_size(game.rows(), game.cols()));
+        assert!(!is_perfect_hud_size(5, 5));
+        assert!(is_perfect_hud_size(2, 2));
+        assert!(is_perfect_hud_size(3, 3));
     }
 }

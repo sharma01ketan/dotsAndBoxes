@@ -182,6 +182,7 @@ live while it thinks. No per-move time budget this ticket.
 | Next | Uses this |
 |------|-----------|
 | KET-20 | Worker for 3×3 search — shipped; 4×4 time cap still later; never label a timeout as Perfect |
+| KET-59 | `isPerfectHudSize` + `POLICY_*` exported from WASM; Perfect still Err off 2×2/3×3 |
 | KET-21 | Overlay can show control / loony; margin line is a preview of that teaching HUD |
 | KET-19 | MCTS is a different rung; do not use Perfect as a stub for it |
 

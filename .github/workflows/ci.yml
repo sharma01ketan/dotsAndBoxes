@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test (debug)
+        run: cargo test --workspace
+      - name: test dab-core (release)
+        run: cargo test -p dab-core --release
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: lint
+        run: pnpm --filter @dab/web lint
+      - name: typecheck
+        run: pnpm --filter @dab/web exec tsc -b
+      - name: test
+        run: pnpm --filter @dab/web test
+
+  wasm-pkg:
+    name: wasm/pkg matches source
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: wasm-pack
+          version: "0.15.0"
+      - name: rebuild wasm/pkg
+        run: |
+          wasm-pack build wasm --target web --out-dir pkg --scope dab --no-opt
+          rm -f wasm/pkg/.gitignore
+      - name: fail if wasm/pkg drifted from core
+        run: git diff --exit-code wasm/pkg

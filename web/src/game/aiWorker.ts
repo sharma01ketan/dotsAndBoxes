@@ -3,17 +3,11 @@
  * The UI thread keeps its own WasmGame for play + snapshot.
  */
 import init, { WasmGame } from '@dab/dab-wasm';
+import { createWasmInit } from '../lib/wasmInit';
 import type { AiWorkerRequest, AiWorkerResponse } from './aiWorkerProtocol';
 
-let ready: Promise<void> | null = null;
+const ensureInit = createWasmInit(() => init());
 let game: WasmGame | null = null;
-
-function ensureInit(): Promise<void> {
-  if (!ready) {
-    ready = init().then(() => undefined);
-  }
-  return ready;
-}
 
 function reply(msg: AiWorkerResponse) {
   postMessage(msg);

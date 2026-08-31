@@ -172,15 +172,11 @@ impl Search {
         if let Some(&(val, flag)) = self.tt.get(&key) {
             match flag {
                 TT_EXACT => return val,
-                TT_LOWER => {
-                    if val > alpha {
-                        alpha = val;
-                    }
+                TT_LOWER if val > alpha => {
+                    alpha = val;
                 }
-                TT_UPPER => {
-                    if val < beta {
-                        beta = val;
-                    }
+                TT_UPPER if val < beta => {
+                    beta = val;
                 }
                 _ => {}
             }
@@ -239,9 +235,11 @@ fn order_moves(game: Game, legal: &mut [EdgeId]) {
     });
 }
 
+type CoordMap = fn(u8, u8, u8, u8) -> (u8, u8);
+
 fn symmetry_maps(geom: BoardGeom) -> Vec<Vec<EdgeId>> {
     let n = geom.edge_count() as usize;
-    let kinds: &[fn(u8, u8, u8, u8) -> (u8, u8)] = if geom.rows() == geom.cols() {
+    let kinds: &[CoordMap] = if geom.rows() == geom.cols() {
         &[
             d4_id,
             d4_rot90,
@@ -355,7 +353,9 @@ fn d2_rot180(rows: u8, cols: u8, r: u8, c: u8) -> (u8, u8) {
 mod tests {
     use super::*;
     use crate::board::{BoardGeom, EdgeCoord, Orientation};
-    use crate::engine::{CgtEngine, GreedyEngine};
+    use crate::engine::CgtEngine;
+    #[cfg(not(debug_assertions))]
+    use crate::engine::GreedyEngine;
     use crate::game::Player;
     #[cfg(not(debug_assertions))]
     use crate::game::Winner;

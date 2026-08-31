@@ -1,16 +1,28 @@
-import init, { WasmGame } from '@dab/dab-wasm';
+import init, {
+  WasmGame,
+  POLICY_RANDOM,
+  POLICY_GREEDY,
+  POLICY_CGT,
+  POLICY_PERFECT,
+  isPerfectHudSize,
+} from '@dab/dab-wasm';
+import { createWasmInit } from './wasmInit';
 
-let ready: Promise<void> | null = null;
+const runInit = createWasmInit(() => init());
 
 /** Initialize the WASM module once. Safe to call multiple times. */
 export function initWasm(): Promise<void> {
-  if (!ready) {
-    ready = init().then(() => undefined);
-  }
-  return ready;
+  return runInit();
 }
 
-export { WasmGame };
+export {
+  WasmGame,
+  POLICY_RANDOM,
+  POLICY_GREEDY,
+  POLICY_CGT,
+  POLICY_PERFECT,
+  isPerfectHudSize,
+};
 
 export function playerLabel(player: number): string {
   return player === 0 ? 'P1' : 'P2';

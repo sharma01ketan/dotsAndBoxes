@@ -14,8 +14,8 @@ and 3×3), Web Worker for `chooseMove` / `perfectValue` (KET-20). What is *not*
 shipped: theory overlay (KET-21), MCTS (KET-19), multiplayer, AlphaZero, GPU
 kernels.
 
-**Next.** [KET-47](https://linear.app/sharma01ketan/issue/KET-47) (CI).
-Do not start filling `server/` / `gpu/` / `ai/` until Phase 3–4 (KET-61).
+**Next.** [KET-19](https://linear.app/sharma01ketan/issue/KET-19) (local WASM MCTS).
+Do not recreate `server/` / `gpu/` / `ai/` until Phase 3–4.
 
 ---
 
@@ -249,17 +249,22 @@ Redis: `matchmaking:queue`, `presence:*`, `room:*` pub/sub channels.
 dotsAndBoxes/
 ├─ PLAN.md
 ├─ core/            # Rust: shared game engine + solver (native + wasm targets)
-├─ server/          # Rust: axum WebSocket backend (links core)
+├─ server/          # Rust: axum WebSocket backend (links core) — Phase 3
 ├─ web/             # React + TS + PixiJS frontend (loads core WASM)
-├─ ai/              # Python: training, self-play, ONNX export
-├─ gpu/             # Rust: wgpu/WGSL batched rollout + eval kernels
-├─ proto/           # shared protocol definitions
-├─ infra/           # Docker, CI, deploy configs, Grafana dashboards
+├─ ai/              # Python: training, self-play, ONNX export — Phase 4
+├─ gpu/             # Rust: wgpu/WGSL batched rollout + eval kernels — Phase 4
+├─ proto/           # shared protocol definitions — Phase 3
+├─ infra/           # Docker, CI, deploy configs, Grafana dashboards — Phase 5
 └─ docs/            # architecture notes, CGT writeups
 ```
 
+Phase 3–4 directories are **not in git** until those phases start (KET-61).
+Today the Cargo workspace is `core`, `cli`, `wasm`. Deploy config is
+`vercel.json` at repo root.
+
 Tooling: Cargo workspace for Rust crates; pnpm for the web app;
-`wasm-pack`/`wasm-bindgen` for the WASM build; `uv`/`poetry` for Python.
+`wasm-pack`/`wasm-bindgen` for the WASM build; `uv`/`poetry` for Python
+when Phase 4 starts.
 
 ---
 
@@ -288,10 +293,11 @@ Each phase ends with something demoable.
 **Still this phase (do these before Phase 3).**
 - Cancel vs-AI loop on New game; unstick `chooseMove` errors (KET-57). **Done.**
 - Web Worker so Perfect / CPU search never freeze the tab (KET-20). **Done.**
-- WASM boundary: `boxOwner` range check, panic hook, retry init (KET-59).
-- Pixi incremental claimed boxes + hover rewire (KET-60).
-- CI: debug + **release** `cargo test`, wasm-pkg diff vs source (KET-47).
-- Delete unused Phase 3/4 stub crates until those phases start (KET-61).
+- WASM boundary: `boxOwner` range check, panic hook, retry init (KET-59). **Done.**
+- Pixi incremental claimed boxes + hover rewire (KET-60). **Done.**
+  Spec: [`docs/specs/phase2-pixi-incremental.md`](./docs/specs/phase2-pixi-incremental.md).
+- CI: debug + **release** `cargo test`, wasm-pkg diff vs source (KET-47). **Done.**
+- Delete unused Phase 3/4 stub crates until those phases start (KET-61). **Done.**
 - Local WASM MCTS for Medium/Hard-lite (KET-19) — **after** the Worker.
 - Theory overlay (chains/loops/parity) in the UI (KET-21). Analysis API exists.
 - **Demo:** single-player vs a genuinely strong, explainable AI, **without jank**.
@@ -325,7 +331,7 @@ Each phase ends with something demoable.
   the UI thread.
 - **WASM/JS interop friction.** Keep the WASM API small and data-oriented
   (indices and typed arrays, not rich objects). Range-check every index at the
-  binding (`boxOwner` today does not).
+  binding (`boxOwner` returns −1 when out of range).
 - **AlphaZero training cost on M1.** Board and net are small; start with the
   smallest board that is still interesting (e.g., 3×3 boxes) and scale up.
 - **WebGPU browser support.** Provide a WASM-CPU fallback for the AI so the app

@@ -1,8 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const POLICY_CGT: () => number;
+export const POLICY_GREEDY: () => number;
+export const POLICY_PERFECT: () => number;
+export const POLICY_RANDOM: () => number;
 export const __wbg_wasmgame_free: (a: number, b: number) => void;
-export const init_panic_hook: () => void;
+export const isPerfectHudSize: (a: number, b: number) => number;
 export const wasmgame_boxCount: (a: number) => number;
 export const wasmgame_boxOwner: (a: number, b: number) => number;
 export const wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];
@@ -22,7 +26,10 @@ export const wasmgame_rows: (a: number) => number;
 export const wasmgame_scoreP1: (a: number) => number;
 export const wasmgame_scoreP2: (a: number) => number;
 export const wasmgame_winner: (a: number) => number;
+export const init_panic_hook: () => void;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __externref_table_dealloc: (a: number) => void;
-export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_start: () => void;

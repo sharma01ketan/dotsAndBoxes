@@ -4,6 +4,11 @@ import {
   playerLabel,
   winnerLabel,
   WasmGame,
+  POLICY_RANDOM,
+  POLICY_GREEDY,
+  POLICY_CGT,
+  POLICY_PERFECT,
+  isPerfectHudSize as wasmIsPerfectHudSize,
 } from '../lib/wasmGame';
 import { getAiEngine, initAiEngine } from './aiClient';
 import { cpuToMove, runAiTurnLoop, sleep } from './aiTurn';
@@ -25,13 +30,8 @@ export const PLAY_MODES: { id: PlayMode; label: string }[] = [
   { id: 'vs-perfect', label: 'vs Perfect' },
 ];
 
-const POLICY_RANDOM = 0;
-const POLICY_GREEDY = 1;
-const POLICY_CGT = 2;
-const POLICY_PERFECT = 3;
-
 export function isPerfectHudSize(size: number): boolean {
-  return size === 2 || size === 3;
+  return wasmIsPerfectHudSize(size, size);
 }
 
 /** Result of a successful `play` — UI/SFX/motion consume this; rules stay in WASM. */
@@ -105,10 +105,10 @@ function snapshotFrom(
 }
 
 function policyForMode(mode: PlayMode): number | null {
-  if (mode === 'vs-random') return POLICY_RANDOM;
-  if (mode === 'vs-greedy') return POLICY_GREEDY;
-  if (mode === 'vs-cgt') return POLICY_CGT;
-  if (mode === 'vs-perfect') return POLICY_PERFECT;
+  if (mode === 'vs-random') return POLICY_RANDOM();
+  if (mode === 'vs-greedy') return POLICY_GREEDY();
+  if (mode === 'vs-cgt') return POLICY_CGT();
+  if (mode === 'vs-perfect') return POLICY_PERFECT();
   return null;
 }
 

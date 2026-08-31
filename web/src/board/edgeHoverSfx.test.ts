@@ -64,6 +64,21 @@ describe('reduceHoverSfx', () => {
     assert.equal(r.state.phase.kind, 'pending');
   });
 
+  it('rebuild while armed returns to idle so a new enter can arm', () => {
+    const s = initialHoverSfxState();
+    let r = apply(s, { type: 'enter', edgeId: 4, now: 0 });
+    r = apply(r.state, { type: 'tick', now: HOVER_SFX_DEBOUNCE_MS });
+    assert.equal(r.state.phase.kind, 'armed');
+
+    r = apply(r.state, { type: 'rebuild', now: 100 });
+    assert.equal(r.state.phase.kind, 'idle');
+
+    r = apply(r.state, { type: 'enter', edgeId: 4, now: 101 });
+    assert.equal(r.state.phase.kind, 'pending');
+    r = apply(r.state, { type: 'tick', now: 101 + HOVER_SFX_DEBOUNCE_MS });
+    assert.deepEqual(r.effects, [{ type: 'play', edgeId: 4 }]);
+  });
+
   it('re-enter same armed edge does not re-schedule', () => {
     const s = initialHoverSfxState();
     let r = apply(s, { type: 'enter', edgeId: 5, now: 0 });

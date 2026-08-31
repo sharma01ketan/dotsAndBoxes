@@ -10,11 +10,10 @@ dist/
 .vite/
 web/dist/
 
-# Python
+# Python (Phase 4)
 __pycache__/
 *.py[cod]
 .venv/
-ai/.venv/
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
@@ -44,8 +43,6 @@ coverage/
 htmlcov/
 
 # Model artifacts (large)
-ai/checkpoints/
-ai/models/
 *.onnx
 *.pt
 *.pth

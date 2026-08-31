@@ -66,11 +66,11 @@ impl EndgameAnalysis {
 }
 
 /// Corridor region sharing an undrawn edge with a takeable box, if any.
-pub fn attached_region<'a>(
+pub fn attached_region(
     pos: Position,
-    analysis: &'a EndgameAnalysis,
+    analysis: &EndgameAnalysis,
     takeable: BoxId,
-) -> Option<&'a Region> {
+) -> Option<&Region> {
     let geom = pos.geom();
     let (row, col) = geom.box_coord(takeable)?;
     let edges = geom.box_edges(row, col)?;
@@ -401,13 +401,9 @@ fn next_unseen(
     adj: &[[u16; 2]; MAX_REGIONS],
     seen: BoxBits,
 ) -> Option<BoxId> {
-    let nbrs = adj[cur as usize];
-    for n in nbrs {
-        if n != u16::MAX && n != prev && !seen.get(n) {
-            return Some(n);
-        }
-    }
-    None
+    adj[cur as usize]
+        .into_iter()
+        .find(|&n| n != u16::MAX && n != prev && !seen.get(n))
 }
 
 fn region_from_boxes(boxes: BoxBits, length: u8, is_loop: bool) -> Region {

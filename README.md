@@ -13,13 +13,9 @@ dotsAndBoxes/
 ├─ core/            # Rust: rules, engines, exact solver
 ├─ wasm/            # Rust → WASM (@dab/dab-wasm)
 ├─ cli/             # Optional ASCII playground
-├─ server/          # Stub — Phase 3
-├─ gpu/             # Stub — Phase 4
 ├─ web/             # React + TypeScript + PixiJS
-├─ ai/              # Stub — Phase 4
-├─ proto/           # Empty — Phase 3
-├─ infra/           # Empty; deploy is root vercel.json
-└─ docs/specs/      # Phase 1–2 specs
+├─ docs/specs/      # Phase 1–2 specs
+└─ vercel.json      # Deploy config (not infra/)
 ```
 
 | Area | Path | Status |
@@ -27,19 +23,16 @@ dotsAndBoxes/
 | Shared game core | `core/` | Rules, Random/Greedy/CGT/Perfect |
 | WASM bindings | `wasm/` | `@dab/dab-wasm` |
 | Terminal playground | `cli/` | Optional REPL (`cargo test -p dab-core` is the real check) |
-| Realtime server | `server/` | Stub (Phase 3) |
-| GPU kernels | `gpu/` | Stub (Phase 4) |
 | Web UI | `web/` | Opponent / vs-AI Pixi board |
-| AI training | `ai/` | Stub (Phase 4) |
-| Protocol | `proto/` | Empty |
-| Infra | `infra/` | Empty; Vercel at repo root |
 | Docs | `docs/specs/` | Phase 1–2 specs |
+
+`server/`, `gpu/`, `ai/`, `proto/`, and `infra/` are not in the tree until
+Phase 3–4.
 
 ## Prerequisites
 
 - **Rust** stable + `wasm32-unknown-unknown` + [`wasm-pack`](https://rustwasm.github.io/wasm-pack/)
 - **Node.js** 20+ and **pnpm** 9+
-- **Python** 3.11+ only if you touch the Phase 4 stub
 
 ## Quick start
 
@@ -71,15 +64,22 @@ cargo run -p dab-cli -- --rows 3 --cols 3
 
 See [cli/README.md](./cli/README.md) and [wasm/README.md](./wasm/README.md).
 
+## CI
+
+Push and pull requests run `.github/workflows/ci.yml`: rustfmt, clippy (`-D warnings`),
+`cargo test --workspace`, `cargo test -p dab-core --release`, web lint / typecheck /
+tests, and `pnpm build:wasm` with `git diff --exit-code wasm/pkg`.
+
 ## Next
 
-See PLAN.md §12 Phase 2 remaining, or Linear: [KET-57](https://linear.app/sharma01ketan/issue/KET-57) (AI loop), [KET-20](https://linear.app/sharma01ketan/issue/KET-20) (Worker), [KET-47](https://linear.app/sharma01ketan/issue/KET-47) (CI).
+See PLAN.md §12 Phase 2 remaining, or Linear: [KET-19](https://linear.app/sharma01ketan/issue/KET-19) (local WASM MCTS).
 
 ## Tooling
 
-- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`, `server`, `gpu`)
-- JS/TS: pnpm workspace (`web`, `wasm/pkg`), Prettier, ESLint
-- Python: `ai/pyproject.toml` (scaffold only)
+- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`)
+- JS/TS: pnpm workspace (`web`, `wasm/pkg`), Prettier, ESLint (`no-console`)
+- CI: `.github/workflows/ci.yml`
+- Deploy: `vercel.json` at repo root
 
 ## License
 

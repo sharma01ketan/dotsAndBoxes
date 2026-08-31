@@ -1,6 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export function POLICY_CGT(): number;
+
+export function POLICY_GREEDY(): number;
+
+export function POLICY_PERFECT(): number;
+
+export function POLICY_RANDOM(): number;
+
 /**
  * Browser-facing game handle wrapping [`Game`].
  */
@@ -9,7 +17,7 @@ export class WasmGame {
     [Symbol.dispose](): void;
     boxCount(): number;
     /**
-     * `-1` unclaimed, `0` P1, `1` P2.
+     * `-1` unclaimed or out of range, `0` P1, `1` P2.
      */
     boxOwner(box_id: number): number;
     /**
@@ -63,12 +71,21 @@ export class WasmGame {
 
 export function init_panic_hook(): void;
 
+/**
+ * Square 2×2 / 3×3 only. HUD and `chooseMove(3)` share this.
+ */
+export function isPerfectHudSize(rows: number, cols: number): boolean;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly POLICY_CGT: () => number;
+    readonly POLICY_GREEDY: () => number;
+    readonly POLICY_PERFECT: () => number;
+    readonly POLICY_RANDOM: () => number;
     readonly __wbg_wasmgame_free: (a: number, b: number) => void;
-    readonly init_panic_hook: () => void;
+    readonly isPerfectHudSize: (a: number, b: number) => number;
     readonly wasmgame_boxCount: (a: number) => number;
     readonly wasmgame_boxOwner: (a: number, b: number) => number;
     readonly wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];
@@ -88,9 +105,12 @@ export interface InitOutput {
     readonly wasmgame_scoreP1: (a: number) => number;
     readonly wasmgame_scoreP2: (a: number) => number;
     readonly wasmgame_winner: (a: number) => number;
+    readonly init_panic_hook: () => void;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_malloc: (a: number, b: number) => number;
+    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __externref_table_dealloc: (a: number) => void;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

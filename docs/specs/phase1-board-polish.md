@@ -48,6 +48,8 @@ App --PlayOutcome--> PixiBoard --rAF--> edge/box display objects
 
 - Store stays free of Pixi; enrich `PlayOutcome` only.
 - Prefer **incremental** edge/box updates so tweens are not destroyed every move.
+  Claimed boxes come from `snap.boxOwner`; `lastMove` is motion-only
+  ([`phase2-pixi-incremental.md`](./phase2-pixi-incremental.md)).
 - Full rebuild on new game / board size change / container resize.
 - One small helper: `web/src/board/motion.ts` (`easeOutCubic`, `animate`).
 

@@ -63,6 +63,8 @@ type BoardRuntime = {
   boxes: Map<number, BoxGfx>;
   tweens: TweenHandle[];
   lastMoveKey: string | null;
+  /** Last `currentPlayer` the hover preview was wired for. */
+  wiredPlayer: number;
 };
 
 const EDGE_DRAW_MS = 180;
@@ -217,6 +219,31 @@ function createBoxGfx(
   };
 }
 
+function hitLive(
+  edge: EdgeGfx,
+  snap: GameSnapshot,
+  inputEnabled: boolean,
+): boolean {
+  const drawn = (snap.edgeOwner[edge.id] ?? -1) >= 0;
+  return inputEnabled && !drawn && !snap.isTerminal;
+}
+
+function shouldRewireHit(
+  edge: EdgeGfx,
+  snap: GameSnapshot,
+  inputEnabled: boolean,
+  wiredPlayer: number,
+): boolean {
+  const live = hitLive(edge, snap, inputEnabled);
+  const wantMode = live ? 'static' : 'none';
+  const wantCursor = live ? 'pointer' : 'default';
+  if (edge.hit.eventMode !== wantMode || edge.hit.cursor !== wantCursor) {
+    return true;
+  }
+  // Hover preview color is closed over currentPlayer at wire time.
+  return live && wiredPlayer !== snap.currentPlayer;
+}
+
 function wireEdgeHit(
   edge: EdgeGfx,
   snap: GameSnapshot,
@@ -229,7 +256,7 @@ function wireEdgeHit(
 ) {
   const { hit, a, b, id: edgeId } = edge;
   hit.removeAllListeners();
-  const live = inputEnabled && !edge.drawn && !snap.isTerminal;
+  const live = hitLive(edge, snap, inputEnabled);
   hit.eventMode = live ? 'static' : 'none';
   hit.cursor = live ? 'pointer' : 'default';
   const preview = hoverColor(snap.currentPlayer);
@@ -266,6 +293,7 @@ function fullRebuild(
   inputEnabled: boolean,
 ) {
   hoverSfx.rebuild();
+  rt.wiredPlayer = snap.currentPlayer;
   cancelTweens(rt);
   clearLayer(layers.boxes);
   clearLayer(layers.edges);
@@ -353,6 +381,20 @@ function animateEdgeDraw(
     },
   );
   trackTween(rt, tw);
+}
+
+function instantFillBox(
+  rt: BoardRuntime,
+  layers: Layers,
+  boxId: number,
+  owner: number,
+  layout: BoardLayout,
+  cols: number,
+) {
+  if (rt.boxes.has(boxId)) return;
+  const box = createBoxGfx(boxId, owner, layout, cols);
+  layers.boxes.addChild(box.group);
+  rt.boxes.set(boxId, box);
 }
 
 function animateBoxClaim(
@@ -447,17 +489,24 @@ function syncBoard(
   } else {
     const lineW = Math.max(3, layout.cell * 0.06);
     const undrawnW = Math.max(2, layout.cell * 0.04);
+    let rewired = false;
     for (const edge of rt.edges.values()) {
-      wireEdgeHit(
-        edge,
-        snap,
-        lineW,
-        undrawnW,
-        rt.edges,
-        onEdgeClick,
-        hoverSfx,
-        inputEnabled,
-      );
+      if (shouldRewireHit(edge, snap, inputEnabled, rt.wiredPlayer)) {
+        if (!rewired) {
+          hoverSfx.rebuild();
+          rewired = true;
+        }
+        wireEdgeHit(
+          edge,
+          snap,
+          lineW,
+          undrawnW,
+          rt.edges,
+          onEdgeClick,
+          hoverSfx,
+          inputEnabled,
+        );
+      }
       const owner = snap.edgeOwner[edge.id] ?? -1;
       const drawn = owner >= 0;
       if (drawn === edge.drawn && owner === edge.owner) continue;
@@ -475,37 +524,55 @@ function syncBoard(
         );
       }
     }
+    rt.wiredPlayer = snap.currentPlayer;
   }
 
-  if (!lastMove) return;
-  const moveKey = `${lastMove.edgeId}:${lastMove.boxIds.join(',')}:${lastMove.winner}`;
-  if (rt.lastMoveKey === moveKey) return;
-  rt.lastMoveKey = moveKey;
+  const moveKey = lastMove
+    ? `${lastMove.edgeId}:${lastMove.boxIds.join(',')}:${lastMove.winner}`
+    : null;
+  const isNewMove = lastMove !== null && rt.lastMoveKey !== moveKey;
 
-  const lineW = Math.max(3, layout.cell * 0.06);
-  const edge = rt.edges.get(lastMove.edgeId);
-  if (edge) {
-    animateEdgeDraw(rt, edge, lastMove.mover, lineW);
+  if (isNewMove && lastMove) {
+    rt.lastMoveKey = moveKey;
+    const lineW = Math.max(3, layout.cell * 0.06);
+    const edge = rt.edges.get(lastMove.edgeId);
+    if (edge) {
+      animateEdgeDraw(rt, edge, lastMove.mover, lineW);
+    }
   }
 
-  lastMove.boxIds.forEach((boxId, i) => {
-    animateBoxClaim(
-      rt,
-      layers,
-      boxId,
-      lastMove.mover,
-      layout,
-      snap.cols,
-      i * CLAIM_STAGGER_MS,
-    );
-  });
+  const animating = isNewMove && lastMove ? lastMove.boxIds : [];
+  for (let id = 0; id < snap.boxCount; id++) {
+    const owner = snap.boxOwner[id] ?? -1;
+    if (owner < 0 || rt.boxes.has(id)) continue;
+    const staggerIdx = animating.indexOf(id);
+    if (staggerIdx >= 0) {
+      animateBoxClaim(
+        rt,
+        layers,
+        id,
+        owner,
+        layout,
+        snap.cols,
+        staggerIdx * CLAIM_STAGGER_MS,
+      );
+    } else {
+      instantFillBox(rt, layers, id, owner, layout, snap.cols);
+    }
+  }
 
-  if (lastMove.isTerminal && (lastMove.winner === 0 || lastMove.winner === 1)) {
+  if (
+    isNewMove &&
+    lastMove &&
+    lastMove.isTerminal &&
+    (lastMove.winner === 0 || lastMove.winner === 1)
+  ) {
+    const winner = lastMove.winner;
     const delay =
       lastMove.boxIds.length * CLAIM_STAGGER_MS + BOX_CLAIM_MS * 0.4;
     trackTween(
       rt,
-      delayMs(delay, () => pulseWinnerBoxes(rt, lastMove.winner)),
+      delayMs(delay, () => pulseWinnerBoxes(rt, winner)),
     );
   }
 }
@@ -531,6 +598,7 @@ export default function PixiBoard({
     boxes: new Map(),
     tweens: [],
     lastMoveKey: null,
+    wiredPlayer: -1,
   });
   const snapRef = useRef(snap);
   const lastMoveRef = useRef(lastMove);

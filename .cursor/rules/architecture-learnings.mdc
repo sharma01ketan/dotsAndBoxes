@@ -27,7 +27,8 @@ board/layout.ts         # geometry
 board/motion.ts         # rAF tweens (KET-14)
 audio/sounds.ts         # catalog + pure SFX helpers
 audio/useGameSounds.ts  # use-sound + mute
-lib/wasmGame.ts         # WASM init
+lib/wasmGame.ts         # WASM init + policy / size re-exports
+lib/wasmInit.ts         # retryable init() cache (KET-59)
 ```
 
 Target `dab-core` shape (rules + baseline engines):
@@ -42,14 +43,18 @@ rng.rs                  # shared XorShift64 (engines + tests)
 ```
 
 Polish motion: [`docs/specs/phase1-board-polish.md`](docs/specs/phase1-board-polish.md).
+Pixi incremental boxes / hover rewire: [`docs/specs/phase2-pixi-incremental.md`](docs/specs/phase2-pixi-incremental.md).
 Engines: [`docs/specs/phase2-random-greedy-engines.md`](docs/specs/phase2-random-greedy-engines.md).
 CGT analysis: [`docs/specs/phase2-cgt-endgame-analysis.md`](docs/specs/phase2-cgt-endgame-analysis.md).
 CGT heuristic: [`docs/specs/phase2-cgt-heuristic.md`](docs/specs/phase2-cgt-heuristic.md).
 Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solver.md).
+WASM boundary: [`docs/specs/phase2-wasm-boundary.md`](docs/specs/phase2-wasm-boundary.md).
 
 ## Keep dependencies one-way
 
 - **Rules** live in WASM/`dab-core`. The board never invents legality.
+  Index queries are soft at the binding (`boxOwner` / `edgeIsDrawn` never
+  panic on a bad id).
 - **Store** owns `WasmGame` and returns `PlayOutcome` from `play()`.
 - **`runAiTurn` must be bound to `gameGeneration`.** `newGame` bumping
   generation is not enough if an in-flight loop still `chooseMove`s after
@@ -76,7 +81,8 @@ Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solv
   (enter/leave/press/rebuild). Do **not** overload one `edgeId` flag for
   “hovered” + “armed” — leave-during-debounce used to clear the id while the
   timer still fired, silencing the first hover. Press suppresses click→over
-  stacks; full rebuild resets pending only.
+  stacks; full rebuild and incremental hit rewire call `rebuild()` so an
+  `inputEnabled` flip cannot double-play hover.
 
 ## Specs and tickets
 
@@ -84,6 +90,6 @@ Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solv
 - Polish (animations + sound): Linear **KET-14**.
 - vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (Worker: KET-20).
 - Mode copy: local two-human label is **Opponent** (`PlayMode` id stays `hotseat`); see `docs/specs/opponent-mode-copy.md`.
-- Do **not** fill `server/` / `gpu/` / `ai/` / `proto/` / `infra/` until those
-  phases start (KET-61). `vercel.json` at repo root is the deploy config.
+- Do **not** recreate `server/` / `gpu/` / `ai/` / `proto/` / `infra/` until
+  those phases start (KET-61). `vercel.json` at repo root is the deploy config.
 - When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.
