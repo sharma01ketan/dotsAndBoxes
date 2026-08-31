@@ -19,6 +19,14 @@ export function POLICY_GREEDY() {
 /**
  * @returns {number}
  */
+export function POLICY_MCTS() {
+    const ret = wasm.POLICY_MCTS();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
 export function POLICY_PERFECT() {
     const ret = wasm.POLICY_PERFECT();
     return ret;
@@ -65,7 +73,7 @@ export class WasmGame {
     /**
      * Choose a legal edge without applying it.
      *
-     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
      * `seed` seeds the engine RNG.
      * @param {number} policy
      * @param {bigint} seed

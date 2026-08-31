@@ -35,6 +35,7 @@ Builds on: [`phase1-hotseat-board.md`](./phase1-hotseat-board.md).
 | Opponent | `hotseat` | Human | Human |
 | vs Random | `vs-random` | Human | `RandomEngine` |
 | vs Greedy | `vs-greedy` | Human | `GreedyEngine` |
+| Medium (MCTS) | `vs-mcts` | Human | `MctsEngine` (KET-19) |
 | vs CGT / **Hard (CGT)** | `vs-cgt` | Human | `CgtEngine` (KET-17); Hard copy → KET-18 |
 | vs Perfect | `vs-perfect` | Human | `PerfectEngine` (KET-18), 2×2 / 3×3 only |
 
@@ -69,7 +70,7 @@ Rebuild `@dab/dab-wasm` as part of implementation (`pnpm build:wasm` or repo equ
 
 ```
 App
-├── mode control (Opponent | vs Random | vs Greedy | Hard (CGT) | vs Perfect)
+├── mode control (Opponent | vs Random | vs Greedy | Medium (MCTS) | Hard (CGT) | vs Perfect)
 ├── useGameStore → WasmGame (play + chooseMove [+ perfectValue])
 └── PixiBoard (ignore clicks while AI turn)
 ```

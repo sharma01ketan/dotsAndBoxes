@@ -3,6 +3,7 @@
 export const memory: WebAssembly.Memory;
 export const POLICY_CGT: () => number;
 export const POLICY_GREEDY: () => number;
+export const POLICY_MCTS: () => number;
 export const POLICY_PERFECT: () => number;
 export const POLICY_RANDOM: () => number;
 export const __wbg_wasmgame_free: (a: number, b: number) => void;

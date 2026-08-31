@@ -8,6 +8,7 @@ import {
   POLICY_GREEDY,
   POLICY_CGT,
   POLICY_PERFECT,
+  POLICY_MCTS,
   isPerfectHudSize as wasmIsPerfectHudSize,
 } from '../lib/wasmGame';
 import { getAiEngine, initAiEngine } from './aiClient';
@@ -20,12 +21,19 @@ export const DEFAULT_BOARD = 3;
 export type GameStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Local Opponent (two humans) or human (P1) vs CPU (P2). Id `hotseat` is stable. */
-export type PlayMode = 'hotseat' | 'vs-random' | 'vs-greedy' | 'vs-cgt' | 'vs-perfect';
+export type PlayMode =
+  | 'hotseat'
+  | 'vs-random'
+  | 'vs-greedy'
+  | 'vs-mcts'
+  | 'vs-cgt'
+  | 'vs-perfect';
 
 export const PLAY_MODES: { id: PlayMode; label: string }[] = [
   { id: 'hotseat', label: 'Opponent' },
   { id: 'vs-random', label: 'vs Random' },
   { id: 'vs-greedy', label: 'vs Greedy' },
+  { id: 'vs-mcts', label: 'Medium (MCTS)' },
   { id: 'vs-cgt', label: 'Hard (CGT)' },
   { id: 'vs-perfect', label: 'vs Perfect' },
 ];
@@ -107,6 +115,7 @@ function snapshotFrom(
 function policyForMode(mode: PlayMode): number | null {
   if (mode === 'vs-random') return POLICY_RANDOM();
   if (mode === 'vs-greedy') return POLICY_GREEDY();
+  if (mode === 'vs-mcts') return POLICY_MCTS();
   if (mode === 'vs-cgt') return POLICY_CGT();
   if (mode === 'vs-perfect') return POLICY_PERFECT();
   return null;
@@ -421,6 +430,8 @@ export function modeTitle(mode: PlayMode): string {
       return 'You vs Random';
     case 'vs-greedy':
       return 'You vs Greedy';
+    case 'vs-mcts':
+      return 'You vs Medium (MCTS)';
     case 'vs-cgt':
       return 'You vs Hard (CGT)';
     case 'vs-perfect':
@@ -436,6 +447,8 @@ export function modeLede(mode: PlayMode): string {
       return 'You are P1. The CPU picks legal edges at random.';
     case 'vs-greedy':
       return 'You are P1. The CPU takes free boxes and avoids giving them away.';
+    case 'vs-mcts':
+      return 'You are P1. Medium searches with UCT and greedy rollouts.';
     case 'vs-cgt':
       return 'You are P1. Hard keeps chain control (double-cross / all-but-four).';
     case 'vs-perfect':
@@ -455,6 +468,8 @@ export function scoreLabelP2(mode: PlayMode): string {
       return 'CPU (Random)';
     case 'vs-greedy':
       return 'CPU (Greedy)';
+    case 'vs-mcts':
+      return 'CPU (Medium)';
     case 'vs-cgt':
       return 'CPU (Hard)';
     case 'vs-perfect':

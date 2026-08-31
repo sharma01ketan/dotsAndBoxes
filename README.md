@@ -74,7 +74,7 @@ hash of `core/` + `wasm/` Rust sources so a forgotten rebuild still fails).
 
 ## Next
 
-See PLAN.md §12 Phase 2 remaining, or Linear: [KET-19](https://linear.app/sharma01ketan/issue/KET-19) (local WASM MCTS).
+See PLAN.md §12 Phase 2 remaining, or Linear: [KET-21](https://linear.app/sharma01ketan/issue/KET-21) (theory overlay).
 
 ## Tooling
 

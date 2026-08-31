@@ -9,12 +9,11 @@ This document is the plan of record for the **full** product (local vs-AI,
 then multiplayer, then AlphaZero). Phases are independently demoable.
 
 **Shipped (2026-08).** Phase 1 and the Phase 2 engine ladder are in git: WASM
-rules, Pixi Opponent / vs-AI board (Random, Greedy, Hard CGT, Perfect on 2×2
-and 3×3), Web Worker for `chooseMove` / `perfectValue` (KET-20). What is *not*
-shipped: theory overlay (KET-21), MCTS (KET-19), multiplayer, AlphaZero, GPU
-kernels.
+rules, Pixi Opponent / vs-AI board (Random, Greedy, Medium MCTS, Hard CGT, Perfect
+on 2×2 and 3×3), Web Worker for `chooseMove` / `perfectValue` (KET-20). What is
+*not* shipped: theory overlay (KET-21), multiplayer, AlphaZero, GPU kernels.
 
-**Next.** [KET-19](https://linear.app/sharma01ketan/issue/KET-19) (local WASM MCTS).
+**Next.** [KET-21](https://linear.app/sharma01ketan/issue/KET-21) (theory overlay).
 Do not recreate `server/` / `gpu/` / `ai/` until Phase 3–4.
 
 ---
@@ -162,7 +161,8 @@ tooling lives.
    Medium. The HUD label is **Hard (CGT)** because AlphaZero is unbuilt. **Shipped.**
    Parity is analyzed for the overlay (KET-21), not used to steer `CgtEngine`.
 4. **AlphaZero (Hard)** — CNN policy/value + MCTS. **Phase 4.** Local WASM MCTS
-   (KET-19) is the in-phase stand-in, after the Worker.
+   (KET-19) is the in-phase stand-in: HUD **Medium (MCTS)**, `policy = 4`.
+   Spec: [`docs/specs/phase2-mcts.md`](docs/specs/phase2-mcts.md).
 5. **Perfect (2×2 / 3×3)** — exact `Game` search. **Shipped.** HUD search
    runs in a Web Worker (KET-20).
 
@@ -298,7 +298,8 @@ Each phase ends with something demoable.
   Spec: [`docs/specs/phase2-pixi-incremental.md`](./docs/specs/phase2-pixi-incremental.md).
 - CI: debug + **release** `cargo test`, wasm-pkg glue + source stamp (KET-47).
 - Delete unused Phase 3/4 stub crates until those phases start (KET-61). **Done.**
-- Local WASM MCTS for Medium/Hard-lite (KET-19) — **after** the Worker.
+- Local WASM MCTS for Medium/Hard-lite (KET-19). **Done.** Spec:
+  [`docs/specs/phase2-mcts.md`](docs/specs/phase2-mcts.md).
 - Theory overlay (chains/loops/parity) in the UI (KET-21). Analysis API exists.
 - **Demo:** single-player vs a genuinely strong, explainable AI, **without jank**.
 

@@ -8,6 +8,7 @@ pub mod board;
 pub mod cgt;
 pub mod engine;
 pub mod game;
+pub mod mcts;
 pub mod moves;
 pub mod rng;
 pub mod solver;
@@ -17,6 +18,7 @@ pub use board::{BoardGeom, BoxId, EdgeCoord, EdgeId, Orientation, Position, MAX_
 pub use cgt::{analyze_endgame, analyze_position, EndgameAnalysis, Region, RegionKind};
 pub use engine::{CgtEngine, Engine, GreedyEngine, RandomEngine};
 pub use game::{Game, GameUndo, PlayResult, Player, Winner};
+pub use mcts::MctsEngine;
 pub use moves::{CompletedBoxes, LegalMoves, MoveError, Undo, MAX_COMPLETED_PER_MOVE};
 pub use rng::XorShift64;
 pub use solver::{is_perfect_hud_size, perfect_value, PerfectEngine};

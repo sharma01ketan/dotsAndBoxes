@@ -38,6 +38,7 @@ game.boxOwner(boxId); // -1 none or out of range, 0 P1, 1 P2
 game.edgeCoord(id); // [orient, row, col]  orient: 0=H, 1=V
 game.edgeId(orient, row, col);
 POLICY_GREEDY(); // 1
+POLICY_MCTS(); // 4
 isPerfectHudSize(2, 2); // true
 ```
 

@@ -5,6 +5,8 @@ export function POLICY_CGT(): number;
 
 export function POLICY_GREEDY(): number;
 
+export function POLICY_MCTS(): number;
+
 export function POLICY_PERFECT(): number;
 
 export function POLICY_RANDOM(): number;
@@ -23,7 +25,7 @@ export class WasmGame {
     /**
      * Choose a legal edge without applying it.
      *
-     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
      * `seed` seeds the engine RNG.
      */
     chooseMove(policy: number, seed: bigint): number;
@@ -82,6 +84,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly POLICY_CGT: () => number;
     readonly POLICY_GREEDY: () => number;
+    readonly POLICY_MCTS: () => number;
     readonly POLICY_PERFECT: () => number;
     readonly POLICY_RANDOM: () => number;
     readonly __wbg_wasmgame_free: (a: number, b: number) => void;

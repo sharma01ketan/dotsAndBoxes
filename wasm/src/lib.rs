@@ -7,8 +7,8 @@ use std::cell::RefCell;
 
 use dab_core::{
     is_perfect_hud_size as core_is_perfect_hud_size, BoardGeom, CgtEngine, EdgeCoord, EdgeId,
-    Engine, Game, GreedyEngine, MoveError, Orientation, PerfectEngine, Player, RandomEngine,
-    Winner,
+    Engine, Game, GreedyEngine, MctsEngine, MoveError, Orientation, PerfectEngine, Player,
+    RandomEngine, Winner,
 };
 use wasm_bindgen::prelude::*;
 
@@ -33,6 +33,8 @@ pub const POLICY_GREEDY: u8 = 1;
 pub const POLICY_CGT: u8 = 2;
 /// `choose_move` policy: exact Perfect (2×2 / 3×3 only).
 pub const POLICY_PERFECT: u8 = 3;
+/// `choose_move` policy: UCT MCTS (greedy rollouts).
+pub const POLICY_MCTS: u8 = 4;
 
 #[wasm_bindgen(js_name = POLICY_RANDOM)]
 pub fn policy_random() -> u8 {
@@ -52,6 +54,11 @@ pub fn policy_cgt() -> u8 {
 #[wasm_bindgen(js_name = POLICY_PERFECT)]
 pub fn policy_perfect() -> u8 {
     POLICY_PERFECT
+}
+
+#[wasm_bindgen(js_name = POLICY_MCTS)]
+pub fn policy_mcts() -> u8 {
+    POLICY_MCTS
 }
 
 /// Square 2×2 / 3×3 only. HUD and `chooseMove(3)` share this.
@@ -243,7 +250,7 @@ impl WasmGame {
 
     /// Choose a legal edge without applying it.
     ///
-    /// `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect.
+    /// `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
     /// `seed` seeds the engine RNG.
     #[wasm_bindgen(js_name = chooseMove)]
     pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue> {
@@ -254,6 +261,7 @@ impl WasmGame {
             POLICY_RANDOM => RandomEngine::new(seed).choose(&self.inner),
             POLICY_GREEDY => GreedyEngine::new(seed).choose(&self.inner),
             POLICY_CGT => CgtEngine::new(seed).choose(&self.inner),
+            POLICY_MCTS => MctsEngine::new(seed).choose(&self.inner),
             POLICY_PERFECT => {
                 let geom = self.inner.geom();
                 if !core_is_perfect_hud_size(geom.rows(), geom.cols()) {
@@ -266,7 +274,7 @@ impl WasmGame {
             }
             _ => {
                 return Err(js_err(format!(
-                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt, 3=perfect)"
+                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt, 3=perfect, 4=mcts)"
                 )));
             }
         };
@@ -319,6 +327,10 @@ mod tests {
         let perfect = game.choose_move(POLICY_PERFECT, 13).unwrap();
         assert!(game.is_legal(perfect));
         assert!(!game.edge_is_drawn(perfect));
+
+        let mcts = game.choose_move(POLICY_MCTS, 17).unwrap();
+        assert!(game.is_legal(mcts));
+        assert!(!game.edge_is_drawn(mcts));
         assert_eq!(game.current_player(), 0);
         assert_eq!(game.legal_moves().len(), game.edge_count() as usize);
 

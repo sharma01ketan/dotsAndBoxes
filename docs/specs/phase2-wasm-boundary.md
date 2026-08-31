@@ -100,7 +100,7 @@ Same helper for [`web/src/lib/wasmGame.ts`](../../web/src/lib/wasmGame.ts) and
 Export from WASM:
 
 - `POLICY_RANDOM` = 0, `POLICY_GREEDY` = 1, `POLICY_CGT` = 2,
-  `POLICY_PERFECT` = 3
+  `POLICY_PERFECT` = 3, `POLICY_MCTS` = 4
 - `isPerfectHudSize(rows, cols)` → core `is_perfect_hud_size`
 
 Re-export from `wasmGame.ts`. Store `isPerfectHudSize(size)` is
