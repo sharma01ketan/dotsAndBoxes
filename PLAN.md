@@ -296,7 +296,7 @@ Each phase ends with something demoable.
 - WASM boundary: `boxOwner` range check, panic hook, retry init (KET-59). **Done.**
 - Pixi incremental claimed boxes + hover rewire (KET-60). **Done.**
   Spec: [`docs/specs/phase2-pixi-incremental.md`](./docs/specs/phase2-pixi-incremental.md).
-- CI: debug + **release** `cargo test`, wasm-pkg diff vs source (KET-47). **Done.**
+- CI: debug + **release** `cargo test`, wasm-pkg glue + source stamp (KET-47).
 - Delete unused Phase 3/4 stub crates until those phases start (KET-61). **Done.**
 - Local WASM MCTS for Medium/Hard-lite (KET-19) — **after** the Worker.
 - Theory overlay (chains/loops/parity) in the UI (KET-21). Analysis API exists.

@@ -32,7 +32,7 @@ Phase 3–4.
 ## Prerequisites
 
 - **Rust** stable + `wasm32-unknown-unknown` + [`wasm-pack`](https://rustwasm.github.io/wasm-pack/)
-- **Node.js** 20+ and **pnpm** 9+
+- **Node.js** 22+ and **pnpm** 9+
 
 ## Quick start
 
@@ -68,7 +68,9 @@ See [cli/README.md](./cli/README.md) and [wasm/README.md](./wasm/README.md).
 
 Push and pull requests run `.github/workflows/ci.yml`: rustfmt, clippy (`-D warnings`),
 `cargo test --workspace`, `cargo test -p dab-core --release`, web lint / typecheck /
-tests, and `pnpm build:wasm` with `git diff --exit-code wasm/pkg`.
+tests, and a wasm-pack rebuild that must match committed JS glue plus
+`wasm/pkg/SOURCE_STAMP` (the `.wasm` blob is host-dependent; the stamp is a
+hash of `core/` + `wasm/` Rust sources so a forgotten rebuild still fails).
 
 ## Next
 

@@ -41,7 +41,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: lint
@@ -69,5 +69,6 @@ jobs:
         run: |
           wasm-pack build wasm --target web --out-dir pkg --scope dab --no-opt
           rm -f wasm/pkg/.gitignore
-      - name: fail if wasm/pkg drifted from core
-        run: git diff --exit-code wasm/pkg
+          bash scripts/wasm-source-stamp.sh
+      - name: fail if wasm glue or source stamp drifted
+        run: git diff --exit-code -- wasm/pkg ':!wasm/pkg/*.wasm'
