@@ -6,8 +6,8 @@
 
 use crate::board::{EdgeId, Position};
 use crate::cgt::{
-    analyze_endgame, opening_edges, ranked_open_targets, refuse_skip_region, should_refuse_capture,
-    Region, RegionKind,
+    analyze_endgame, opening_edges, ranked_open_targets, refuse_remnant, EndgameAnalysis, Region,
+    RegionKind,
 };
 use crate::game::Game;
 use crate::rng::XorShift64;
@@ -136,19 +136,20 @@ impl Engine for CgtEngine {
             }
         }
 
+        let analysis = analyze_endgame(game);
+
         if best_completed > 0 {
-            if should_refuse_capture(game) {
-                let skip = refuse_skip_region(game);
-                if let Some(edge) = pick_opening(game, skip.as_ref(), true, &mut self.rng) {
+            if let Some(skip) = refuse_remnant(game, &analysis) {
+                if let Some(edge) = pick_opening(game, &analysis, Some(&skip), true, &mut self.rng)
+                {
                     return edge;
                 }
             }
             return pick(&mut self.rng, &capturing);
         }
 
-        let analysis = analyze_endgame(game);
         if analysis.decomposed {
-            if let Some(edge) = pick_opening(game, None, false, &mut self.rng) {
+            if let Some(edge) = pick_opening(game, &analysis, None, false, &mut self.rng) {
                 return edge;
             }
             return pick(&mut self.rng, &legal);
@@ -163,7 +164,7 @@ impl Engine for CgtEngine {
         if !safe.is_empty() {
             return pick(&mut self.rng, &safe);
         }
-        if let Some(edge) = pick_opening(game, None, false, &mut self.rng) {
+        if let Some(edge) = pick_opening(game, &analysis, None, false, &mut self.rng) {
             return edge;
         }
         pick(&mut self.rng, &legal)
@@ -172,13 +173,13 @@ impl Engine for CgtEngine {
 
 fn pick_opening(
     game: &Game,
+    analysis: &EndgameAnalysis,
     skip: Option<&Region>,
     control: bool,
     rng: &mut XorShift64,
 ) -> Option<EdgeId> {
-    let analysis = analyze_endgame(game);
     let pos = game.position();
-    let targets = ranked_open_targets(&analysis, skip, control);
+    let targets = ranked_open_targets(analysis, skip, control);
     if targets.is_empty() {
         return None;
     }
@@ -201,10 +202,10 @@ fn pick_opening(
         })
         .collect();
     let region = tied[rng.gen_index(tied.len())];
-    let edges = opening_edges(pos, region);
+    let edges = non_capturing_openings(pos, region);
     if edges.is_empty() {
         for region in targets {
-            let edges = opening_edges(pos, region);
+            let edges = non_capturing_openings(pos, region);
             if !edges.is_empty() {
                 return Some(pick(rng, &edges));
             }
@@ -212,6 +213,13 @@ fn pick_opening(
         return None;
     }
     Some(pick(rng, &edges))
+}
+
+fn non_capturing_openings(pos: Position, region: &Region) -> Vec<EdgeId> {
+    opening_edges(pos, region)
+        .into_iter()
+        .filter(|&e| completed_count(pos, e) == 0)
+        .collect()
 }
 
 fn pick(rng: &mut XorShift64, items: &[EdgeId]) -> EdgeId {
@@ -438,6 +446,22 @@ mod tests {
             choice == open_a || choice == open_b,
             "expected ground open of the bottom chain, got {choice}"
         );
+        let analysis = analyze_endgame(&game);
+        let remnant = refuse_remnant(&game, &analysis).expect("two loop takeables should refuse");
+        assert_eq!(crate::cgt::refuse_skip_region(&game), Some(remnant));
+        assert_eq!(completed_count(game.position(), choice), 0);
+    }
+
+    #[test]
+    fn cgt_opening_does_not_complete_a_box() {
+        let geom = BoardGeom::new(2, 3).unwrap();
+        let mut game = Game::new(geom);
+        draw_all_horizontals(&mut game);
+        game.play(edge(geom, Orientation::Vertical, 0, 0)).unwrap();
+        assert!(should_refuse_capture(&game));
+        let mut cgt = CgtEngine::new(7);
+        let choice = cgt.choose(&game);
+        assert_eq!(completed_count(game.position(), choice), 0);
     }
 
     fn play_match(

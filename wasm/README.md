@@ -31,6 +31,8 @@ game.scoreP1();
 game.scoreP2();
 game.legalMoves(); // Uint16Array of edge ids
 game.play(edgeId); // Uint16Array: [extraTurn, count, ...boxIds]
+game.analyze(); // Uint16Array CGT dump (does not play)
+game.chooseMove(policy, seed); // legal edge, does not play
 game.isTerminal();
 game.winner(); // -1 in progress, 0 P1, 1 P2, 2 draw
 game.edgeIsDrawn(id);

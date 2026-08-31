@@ -13,7 +13,8 @@ Depends on: [`phase2-cgt-endgame-analysis.md`](./phase2-cgt-endgame-analysis.md)
 - Double-cross: decline the last two boxes of a long chain when another control
   region remains.
 - All-but-four: decline emptying a 4-loop while another long chain/loop remains.
-- Midgame: greedy capture/safe ladder, then steer long-chain **parity**.
+- Midgame: greedy capture/safe ladder. Parity is overlay-only (KET-21); it
+  does not steer `CgtEngine`.
 - Playable in the browser: WASM `policy = 2`, HUD **Hard (CGT)** (id `vs-cgt`). Default stays vs Greedy.
 
 ## Non-goals
@@ -84,6 +85,13 @@ Helpers in [`core/src/cgt.rs`](../../core/src/cgt.rs): region attached to a
 takeable, opening edges. No heap in `EndgameAnalysis`; engines may `Vec` for
 legal-move lists (same as Greedy).
 
+**KET-58 remnant.** `refuse_remnant(game, analysis) -> Option<Region>` uses the
+**same** predicate as refuse (short-2 with another control region, or 4-loop
+with another long/loop). `should_refuse_capture` is `.is_some()`.
+`refuse_skip_region` is a thin wrapper. `CgtEngine::choose` analyzes once and
+threads `&EndgameAnalysis`. Opening edges that would complete a box
+(`completed_count > 0`) are dropped so refuse cannot capture while “opening.”
+
 | Contract | Detail |
 |----------|--------|
 | Input | `&Game` |
@@ -114,6 +122,7 @@ HUD copy for Hard (CGT) ships with [`phase2-exact-solver.md`](./phase2-exact-sol
 - [x] Arena vs Greedy, 3×3, ≥200 games, seats swapped: CGT win rate **≥ 60%** of decisive games.
 - [x] `chooseMove(2, seed)` legal and does not apply; HUD vs CGT auto-plays P2.
 - [x] `cargo test -p dab-core` and web typecheck pass.
+- [ ] KET-58: two takeables / takeable touching two regions — skip is the remnant that triggered refuse; opening does not complete a box.
 
 ## Handoff
 

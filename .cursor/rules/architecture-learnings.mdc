@@ -17,11 +17,12 @@ alwaysApply: true
 Target web shape:
 
 ```
-App.tsx                 # HUD + wiring
+App.tsx                 # HUD + wiring (overlay toggle, Hint)
 game/store.ts           # Zustand + WasmGame + PlayOutcome
+game/analysis.ts        # parse analyze() dump (KET-21)
 game/aiWorker.ts        # WASM chooseMove / perfectValue (KET-20)
 game/aiClient.ts        # main-thread queue over the worker
-board/PixiBoard.tsx     # render + hit-test + light motion
+board/PixiBoard.tsx     # render + hit-test + overlay/hint paint
 board/edgeHoverSfx.ts   # hover SFX state machine (tested)
 board/layout.ts         # geometry
 board/motion.ts         # rAF tweens (KET-14)
@@ -51,6 +52,16 @@ CGT heuristic: [`docs/specs/phase2-cgt-heuristic.md`](docs/specs/phase2-cgt-heur
 Exact solver: [`docs/specs/phase2-exact-solver.md`](docs/specs/phase2-exact-solver.md).
 MCTS: [`docs/specs/phase2-mcts.md`](docs/specs/phase2-mcts.md).
 WASM boundary: [`docs/specs/phase2-wasm-boundary.md`](docs/specs/phase2-wasm-boundary.md).
+Theory overlay: [`docs/specs/phase2-theory-overlay.md`](docs/specs/phase2-theory-overlay.md).
+Hints: [`docs/specs/phase2-hints.md`](docs/specs/phase2-hints.md).
+Server WS: [`docs/specs/phase3-server-ws.md`](docs/specs/phase3-server-ws.md).
+
+Target `dab-server` (`server/`):
+
+```
+src/lib.rs   # /health, /ready, /ws sessions
+src/main.rs  # PORT, RUST_LOG, graceful shutdown
+```
 
 ## Keep dependencies one-way
 
@@ -61,8 +72,9 @@ WASM boundary: [`docs/specs/phase2-wasm-boundary.md`](docs/specs/phase2-wasm-bou
 - **`runAiTurn` must be bound to `gameGeneration`.** `newGame` bumping
   generation is not enough if an in-flight loop still `chooseMove`s after
   `sleep`. Capture generation at start; abort on mismatch (KET-57).
-- **Perfect / `chooseMove` run in a Web Worker (KET-20).** Do not add
-  more search (MCTS, overlay) on the main thread.
+- **Perfect / `chooseMove` / Hint run in a Web Worker (KET-20).** Do not
+  add more search (MCTS, Perfect, hint) on the main thread. Overlay
+  `analyze()` is a graph walk on ≤25 boxes — main thread is fine (KET-21).
 - **App** maps outcomes → SFX and passes callbacks into Pixi.
 - **Pixi** only renders snapshots and emits `edgeId` click/hover.
 - **Audio** never imports into the store; game types may be imported by audio (`import type`).
@@ -92,6 +104,7 @@ WASM boundary: [`docs/specs/phase2-wasm-boundary.md`](docs/specs/phase2-wasm-bou
 - Polish (animations + sound): Linear **KET-14**.
 - vs Random/Greedy UI: `docs/specs/phase2-vs-ai-hotseat.md` (Worker: KET-20).
 - Mode copy: local two-human label is **Opponent** (`PlayMode` id stays `hotseat`); see `docs/specs/opponent-mode-copy.md`.
-- Do **not** recreate `server/` / `gpu/` / `ai/` / `proto/` / `infra/` until
-  those phases start (KET-61). `vercel.json` at repo root is the deploy config.
+- Do **not** recreate `gpu/` / `ai/` / `proto/` / `infra/` until those
+  phases start (KET-61). `server/` is the Phase 3 axum crate. `vercel.json`
+  at repo root is the frontend deploy config.
 - When simplifying after a feature ships, preserve behavior; run lint/build/tests; prefer clarity over line-count.

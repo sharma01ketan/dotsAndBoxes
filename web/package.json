@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test src/audio/sounds.test.ts src/board/edgeHoverSfx.test.ts src/board/layout.test.ts src/board/motion.test.ts src/game/aiTurn.test.ts src/game/aiClient.test.ts src/lib/wasmInit.test.ts"
+    "test": "node --experimental-strip-types --test src/audio/sounds.test.ts src/board/edgeHoverSfx.test.ts src/board/layout.test.ts src/board/motion.test.ts src/game/aiTurn.test.ts src/game/aiClient.test.ts src/game/analysis.test.ts src/lib/wasmInit.test.ts"
   },
   "dependencies": {
     "@dab/dab-wasm": "workspace:*",

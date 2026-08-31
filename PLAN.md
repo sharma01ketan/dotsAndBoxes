@@ -8,13 +8,18 @@ the whole thing deploys as a web app.
 This document is the plan of record for the **full** product (local vs-AI,
 then multiplayer, then AlphaZero). Phases are independently demoable.
 
-**Shipped (2026-08).** Phase 1 and the Phase 2 engine ladder are in git: WASM
-rules, Pixi Opponent / vs-AI board (Random, Greedy, Medium MCTS, Hard CGT, Perfect
-on 2×2 and 3×3), Web Worker for `chooseMove` / `perfectValue` (KET-20). What is
-*not* shipped: theory overlay (KET-21), multiplayer, AlphaZero, GPU kernels.
+**Shipped (2026-08).** Phase 1 and Phase 2 are in git: WASM rules, Pixi
+Opponent / vs-AI board (Random, Greedy, Medium MCTS, Hard CGT, Perfect on
+2×2 and 3×3), Worker search (KET-20), theory overlay (KET-21), hints (KET-22).
+Phase 3 started: `server/` health + JSON WebSocket sessions (KET-23, KET-24).
+What is *not* shipped: binary protocol, rooms, AlphaZero, GPU kernels.
 
-**Next.** [KET-21](https://linear.app/sharma01ketan/issue/KET-21) (theory overlay).
-Do not recreate `server/` / `gpu/` / `ai/` until Phase 3–4.
+**Next.** [KET-25](https://linear.app/sharma01ketan/issue/KET-25) (binary
+protocol). Do not recreate `gpu/` / `ai/` / `proto/` / `infra/`.
+
+**Parallel (does not block KET-25).** JS-shell diet so the WASM core is not
+hidden behind a 500 kB Pixi+React parse:
+[`docs/specs/wasm-first-client.md`](docs/specs/wasm-first-client.md).
 
 ---
 
@@ -118,7 +123,7 @@ and shows the theory to the user. That contrast is the story.
 |---|---|---|
 | Shared game core (rules, bitboards, solver) | **Rust → native + WASM** | One source of truth. Server links natively; browser loads WASM. No client/server rules desync. Fast bitboard ops. |
 | Frontend UI | **React + TypeScript** | Productive, huge ecosystem, easy state management, familiar to you. |
-| Board rendering | **WebGL via PixiJS** | GPU-composited sprites/particles for satisfying chain-capture animations; scales to flashy effects. |
+| Board rendering | **WebGL via PixiJS** (under review) | GPU-composited sprites/particles for later chain-capture spectacle. Today the board is lines/dots/fills. Lazy-load or replace: [`wasm-first-client.md`](docs/specs/wasm-first-client.md). |
 | Local AI (easy/medium) | **WASM MCTS (Rust core)** | Zero server round-trip, instant hints, works offline. |
 | Neural inference (hard AI) | **ONNX Runtime Web + WebGPU** | Runs the trained net in-browser on the M1's GPU (via Metal) and on users' GPUs. "Serverless AI" — scales for free. Server-side `ort` fallback for ranked play integrity. |
 | Backend / realtime | **Rust: axum + tokio + tungstenite** | Low-latency authoritative server, safe concurrency, links the shared core natively. |
@@ -201,14 +206,16 @@ tooling lives.
 
 ## 8. Frontend
 
-- **Stack:** React + TypeScript, Vite build, PixiJS (WebGL) board layer.
+- **Stack:** React + TypeScript HUD, Vite build, PixiJS board (not in the
+  entry chunk — [`wasm-first-client.md`](docs/specs/wasm-first-client.md)).
 - **State:** lightweight store (Zustand) for game/UI; server as source of truth in
   multiplayer.
-- **Rendering:** PixiJS scene for dots/edges/boxes; particle + tween animations
-  for chain captures; `requestAnimationFrame`-driven, GPU-composited.
-- **Perf practices:** WASM core for validation/hints, memoized components, sprite
-  batching, avoid layout thrash, off-main-thread search (Web Worker for
-  Perfect / `chooseMove`, later MCTS).
+- **Rendering:** PixiJS scene for dots/edges/boxes; custom rAF tweens today;
+  particles only if Phase 5 actually ships them. Alternative: Canvas 2D board
+  (Track B2 in the spec) if that spectacle is deferred.
+- **Perf practices:** WASM core for rules/search, Worker for Perfect /
+  `chooseMove` / Hint, wasm-opt on the deploy artifact, no extra search on
+  the UI thread. Do not raise Vite’s chunk warning to hide Pixi.
 - **Theory overlay:** toggle to highlight chains/loops, show parity and predicted
   controller — the CGT teaching feature.
 - **Modes:** local hotseat, vs AI (pick difficulty), online ranked/casual,
@@ -249,7 +256,7 @@ Redis: `matchmaking:queue`, `presence:*`, `room:*` pub/sub channels.
 dotsAndBoxes/
 ├─ PLAN.md
 ├─ core/            # Rust: shared game engine + solver (native + wasm targets)
-├─ server/          # Rust: axum WebSocket backend (links core) — Phase 3
+├─ server/          # Rust: axum health + WS sessions (links core)
 ├─ web/             # React + TS + PixiJS frontend (loads core WASM)
 ├─ ai/              # Python: training, self-play, ONNX export — Phase 4
 ├─ gpu/             # Rust: wgpu/WGSL batched rollout + eval kernels — Phase 4
@@ -258,9 +265,9 @@ dotsAndBoxes/
 └─ docs/            # architecture notes, CGT writeups
 ```
 
-Phase 3–4 directories are **not in git** until those phases start (KET-61).
-Today the Cargo workspace is `core`, `cli`, `wasm`. Deploy config is
-`vercel.json` at repo root.
+`gpu/`, `ai/`, `proto/`, and `infra/` stay out of git until those phases
+(KET-61). Cargo workspace is `core`, `cli`, `wasm`, `server`. Deploy config
+is `vercel.json` at repo root (frontend only).
 
 Tooling: Cargo workspace for Rust crates; pnpm for the web app;
 `wasm-pack`/`wasm-bindgen` for the WASM build; `uv`/`poetry` for Python
@@ -287,8 +294,10 @@ Each phase ends with something demoable.
 - Browser vs Random/Greedy/Hard/Perfect (thin HUD): [`docs/specs/phase2-vs-ai-hotseat.md`](./docs/specs/phase2-vs-ai-hotseat.md).
 - Mode label **Opponent** (was Hotseat): [`docs/specs/opponent-mode-copy.md`](./docs/specs/opponent-mode-copy.md).
 - CGT endgame analysis (chains/loops/parity): [`docs/specs/phase2-cgt-endgame-analysis.md`](./docs/specs/phase2-cgt-endgame-analysis.md) (KET-16).
-- CGT heuristic / double-cross: [`docs/specs/phase2-cgt-heuristic.md`](./docs/specs/phase2-cgt-heuristic.md) (KET-17). Follow-up: refuse/skip remnant (KET-58).
+- CGT heuristic / double-cross: [`docs/specs/phase2-cgt-heuristic.md`](./docs/specs/phase2-cgt-heuristic.md) (KET-17). Refuse/skip remnant (KET-58). **Done.**
 - Exact solver for 2×2 / 3×3 → **vs Perfect**: [`docs/specs/phase2-exact-solver.md`](./docs/specs/phase2-exact-solver.md) (KET-18).
+- Theory overlay: [`docs/specs/phase2-theory-overlay.md`](./docs/specs/phase2-theory-overlay.md) (KET-21). **Done.**
+- Hints: [`docs/specs/phase2-hints.md`](./docs/specs/phase2-hints.md) (KET-22). **Done.**
 
 **Still this phase (do these before Phase 3).**
 - Cancel vs-AI loop on New game; unstick `chooseMove` errors (KET-57). **Done.**
@@ -300,11 +309,16 @@ Each phase ends with something demoable.
 - Delete unused Phase 3/4 stub crates until those phases start (KET-61). **Done.**
 - Local WASM MCTS for Medium/Hard-lite (KET-19). **Done.** Spec:
   [`docs/specs/phase2-mcts.md`](docs/specs/phase2-mcts.md).
-- Theory overlay (chains/loops/parity) in the UI (KET-21). Analysis API exists.
 - **Demo:** single-player vs a genuinely strong, explainable AI, **without jank**.
 
+**Runtime diet (parallel, any time before Phase 5).** Spec:
+[`docs/specs/wasm-first-client.md`](docs/specs/wasm-first-client.md).
+Lazy-load the board, optimize production WASM, then keep Pixi **or** drop it
+for Canvas 2D. Not a Makepad/egui/Leptos rewrite. Not CRDTs for `play()`.
+
 ### Phase 3 — Realtime multiplayer
-- Rust axum WS server linking the core; binary protocol.
+- axum health + JSON WS sessions: [`docs/specs/phase3-server-ws.md`](./docs/specs/phase3-server-ws.md) (KET-23, KET-24). **Done.**
+- Binary protocol (KET-25). **Next.**
 - Rooms, matchmaking (Redis), spectating, reconnection, timers.
 - Postgres persistence: users, games, ratings (Elo), replays.
 - **Demo:** two browsers playing a live ranked match; a third spectating.
@@ -359,4 +373,7 @@ Each phase ends with something demoable.
 3. Rating system: Elo (simple) vs Glicko-2 (better, more work)?
 4. Server-side vs client-only neural inference for ranked integrity?
 5. Hosting targets (Fly.io vs Railway vs VPS) — pick once we deploy.
+6. Board renderer after the shell diet: **keep Pixi** (B1, if Phase 5
+   particles are real) vs **Canvas 2D** (B2, if they are not). Spec:
+   [`docs/specs/wasm-first-client.md`](docs/specs/wasm-first-client.md).
 ```

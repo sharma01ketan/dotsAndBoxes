@@ -15,7 +15,9 @@ pub mod solver;
 
 pub use bitboard::{BoxBits, EdgeBits, BOX_WORDS, EDGE_WORDS};
 pub use board::{BoardGeom, BoxId, EdgeCoord, EdgeId, Orientation, Position, MAX_COLS, MAX_ROWS};
-pub use cgt::{analyze_endgame, analyze_position, EndgameAnalysis, Region, RegionKind};
+pub use cgt::{
+    analyze_endgame, analyze_position, encode_analysis, EndgameAnalysis, Region, RegionKind,
+};
 pub use engine::{CgtEngine, Engine, GreedyEngine, RandomEngine};
 pub use game::{Game, GameUndo, PlayResult, Player, Winner};
 pub use mcts::MctsEngine;
@@ -23,7 +25,7 @@ pub use moves::{CompletedBoxes, LegalMoves, MoveError, Undo, MAX_COMPLETED_PER_M
 pub use rng::XorShift64;
 pub use solver::{is_perfect_hud_size, perfect_value, PerfectEngine};
 
-/// Crate identity helper (used by the server stub smoke check).
+/// Crate identity helper (used by the server health payload).
 pub fn crate_name() -> &'static str {
     "dab-core"
 }

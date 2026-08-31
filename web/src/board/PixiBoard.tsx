@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { GameSnapshot, PlayOutcome } from '../game/store';
+import type { AnalysisSnapshot } from '../game/analysis';
 import {
   COLORS,
   boxCenter,
@@ -21,6 +22,8 @@ type Props = {
   gameGeneration: number;
   /** When false, undrawn edges are not clickable (AI turn / busy). */
   inputEnabled?: boolean;
+  analysis?: AnalysisSnapshot | null;
+  hintEdgeId?: number | null;
   onEdgeClick: (edgeId: number) => void;
   onEdgeHover?: (edgeId: number) => void;
   edgeCoord: (edgeId: number) => [number, number, number] | null;
@@ -49,6 +52,7 @@ type BoxGfx = {
 };
 
 type Layers = {
+  overlay: Container;
   boxes: Container;
   edges: Container;
   dots: Container;
@@ -141,6 +145,61 @@ function trackTween(rt: BoardRuntime, tw: TweenHandle) {
 
 function clearLayer(container: Container) {
   container.removeChildren().forEach((c) => c.destroy({ children: true }));
+}
+
+function overlayColor(kind: 0 | 1 | 2): number {
+  if (kind === 1) return COLORS.overlayLong;
+  if (kind === 2) return COLORS.overlayLoop;
+  return COLORS.overlayShort;
+}
+
+function paintOverlay(
+  overlay: Container,
+  snap: GameSnapshot,
+  layout: BoardLayout,
+  analysis: AnalysisSnapshot | null,
+) {
+  clearLayer(overlay);
+  if (!analysis) return;
+  const size = layout.cell * 0.82;
+  for (const region of analysis.regions) {
+    const color = overlayColor(region.kind);
+    for (const id of region.boxes) {
+      if ((snap.boxOwner[id] ?? -1) >= 0) continue;
+      const r = Math.floor(id / snap.cols);
+      const c = id % snap.cols;
+      const center = boxCenter(layout, r, c);
+      const g = new Graphics();
+      g.roundRect(-size / 2, -size / 2, size, size, 6);
+      g.fill({ color, alpha: 0.18 });
+      g.position.set(center.x, center.y);
+      overlay.addChild(g);
+    }
+  }
+}
+
+function paintHintOnOverlay(
+  overlay: Container,
+  rt: BoardRuntime,
+  snap: GameSnapshot,
+  layout: BoardLayout,
+  hintEdgeId: number | null,
+) {
+  if (hintEdgeId === null) return;
+  if ((snap.edgeOwner[hintEdgeId] ?? -1) >= 0) return;
+  const edge = rt.edges.get(hintEdgeId);
+  if (!edge) return;
+  const lineW = Math.max(4, layout.cell * 0.08);
+  const g = new Graphics();
+  drawEdgeLine(
+    g,
+    edge.a,
+    edge.b,
+    hoverColor(snap.currentPlayer),
+    lineW,
+    0.95,
+  );
+  overlay.addChild(g);
 }
 
 function paintDots(dots: Container, snap: GameSnapshot, layout: BoardLayout) {
@@ -295,6 +354,7 @@ function fullRebuild(
   hoverSfx.rebuild();
   rt.wiredPlayer = snap.currentPlayer;
   cancelTweens(rt);
+  clearLayer(layers.overlay);
   clearLayer(layers.boxes);
   clearLayer(layers.edges);
   clearLayer(layers.dots);
@@ -461,6 +521,8 @@ function syncBoard(
   onEdgeClick: (edgeId: number) => void,
   hoverSfx: ReturnType<typeof createHoverSfxController>,
   inputEnabled: boolean,
+  analysis: AnalysisSnapshot | null,
+  hintEdgeId: number | null,
 ) {
   const sizeChanged =
     !rt.layout ||
@@ -575,6 +637,9 @@ function syncBoard(
       delayMs(delay, () => pulseWinnerBoxes(rt, winner)),
     );
   }
+
+  paintOverlay(layers.overlay, snap, layout, analysis);
+  paintHintOnOverlay(layers.overlay, rt, snap, layout, hintEdgeId);
 }
 
 export default function PixiBoard({
@@ -582,6 +647,8 @@ export default function PixiBoard({
   lastMove,
   gameGeneration,
   inputEnabled = true,
+  analysis = null,
+  hintEdgeId = null,
   onEdgeClick,
   onEdgeHover,
   edgeCoord,
@@ -604,6 +671,8 @@ export default function PixiBoard({
   const lastMoveRef = useRef(lastMove);
   const gameGenerationRef = useRef(gameGeneration);
   const inputEnabledRef = useRef(inputEnabled);
+  const analysisRef = useRef(analysis);
+  const hintEdgeIdRef = useRef(hintEdgeId);
   const onClickRef = useRef(onEdgeClick);
   const onHoverRef = useRef(onEdgeHover);
   const edgeCoordRef = useRef(edgeCoord);
@@ -615,6 +684,8 @@ export default function PixiBoard({
   lastMoveRef.current = lastMove;
   gameGenerationRef.current = gameGeneration;
   inputEnabledRef.current = inputEnabled;
+  analysisRef.current = analysis;
+  hintEdgeIdRef.current = hintEdgeId;
   onClickRef.current = onEdgeClick;
   onHoverRef.current = onEdgeHover;
   edgeCoordRef.current = edgeCoord;
@@ -641,6 +712,8 @@ export default function PixiBoard({
       (id) => onClickRef.current(id),
       hoverSfx,
       inputEnabledRef.current,
+      analysisRef.current,
+      hintEdgeIdRef.current,
     );
   };
 
@@ -650,6 +723,7 @@ export default function PixiBoard({
 
     let cancelled = false;
     let resizeObserver: ResizeObserver | null = null;
+    const overlay = new Container();
     const boxes = new Container();
     const edges = new Container();
     const dots = new Container();
@@ -691,9 +765,10 @@ export default function PixiBoard({
       host.appendChild(app.canvas);
       app.stage.addChild(boxes);
       app.stage.addChild(edges);
+      app.stage.addChild(overlay);
       app.stage.addChild(dots);
       appRef.current = app;
-      layersRef.current = { boxes, edges, dots };
+      layersRef.current = { overlay, boxes, edges, dots };
       paint();
 
       resizeObserver = new ResizeObserver(() => {
@@ -727,7 +802,7 @@ export default function PixiBoard({
 
   useEffect(() => {
     paint();
-  }, [snap, lastMove, gameGeneration, inputEnabled]);
+  }, [snap, lastMove, gameGeneration, inputEnabled, analysis, hintEdgeId]);
 
   return <div className="board-host" ref={hostRef} aria-label="Dots and Boxes board" />;
 }

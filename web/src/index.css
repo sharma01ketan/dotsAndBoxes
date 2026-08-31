@@ -173,6 +173,27 @@ button:hover {
   color: var(--accent);
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  border-color: rgba(26, 31, 28, 0.25);
+  color: var(--ink);
+}
+
+button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.theory-line {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
 .modal-backdrop {
   position: fixed;
   top: 0;

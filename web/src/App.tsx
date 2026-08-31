@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameSounds, useSoundMute } from './audio/useGameSounds';
 import PixiBoard from './board/PixiBoard';
+import { getAiEngine } from './game/aiClient';
 import {
   MAX_BOARD,
   MIN_BOARD,
   PLAY_MODES,
+  analysisLine,
+  hintPolicyForMode,
   isPerfectHudSize,
   modeLede,
   modeTitle,
@@ -43,6 +46,7 @@ export default function App() {
   const mode = useGameStore((s) => s.mode);
   const aiBusy = useGameStore((s) => s.aiBusy);
   const snap = useGameStore((s) => s.snap);
+  const analysis = useGameStore((s) => s.analysis);
   const perfectMargin = useGameStore((s) => s.perfectMargin);
   const gameGeneration = useGameStore((s) => s.gameGeneration);
   const game = useGameStore((s) => s.game);
@@ -54,6 +58,8 @@ export default function App() {
   const runAiTurn = useGameStore((s) => s.runAiTurn);
   const { playHover, playMove, playNewGame } = useGameSounds();
   const [lastMove, setLastMove] = useState<PlayOutcome | null>(null);
+  const [overlayOn, setOverlayOn] = useState(false);
+  const [hintEdgeId, setHintEdgeId] = useState<number | null>(null);
   const [pendingMode, setPendingMode] = useState<PlayMode | null>(null);
   const [pendingSize, setPendingSize] = useState<number | null>(null);
 
@@ -86,6 +92,10 @@ export default function App() {
     if (!snap || snap.isTerminal || snap.currentPlayer !== 1) return;
     kickAi();
   }, [mode, snap, gameGeneration, kickAi]);
+
+  useEffect(() => {
+    setHintEdgeId(null);
+  }, [gameGeneration, lastMove]);
 
   const onEdgeClick = useCallback(
     (edgeId: number) => {
@@ -140,6 +150,41 @@ export default function App() {
     !snap.isTerminal &&
     !aiBusy &&
     (mode === 'hotseat' || snap.currentPlayer === 0);
+
+  const hintPolicy = status === 'ready' ? hintPolicyForMode(mode) : null;
+  const hintDisabled =
+    status !== 'ready' ||
+    !snap ||
+    snap.isTerminal ||
+    aiBusy ||
+    hintPolicy === null ||
+    (mode === 'vs-perfect' && !isPerfectHudSize(boardSize));
+
+  const onHint = useCallback(async () => {
+    const policy = hintPolicyForMode(mode);
+    const { snap: live, gameGeneration: gen, gameSeed, moveCount } =
+      useGameStore.getState();
+    if (
+      policy === null ||
+      !live ||
+      live.isTerminal ||
+      (mode === 'vs-perfect' && !isPerfectHudSize(boardSize))
+    ) {
+      return;
+    }
+    const seed = BigInt(gameSeed) + BigInt(moveCount) * 0x100000001b3n;
+    try {
+      const edge = await getAiEngine().chooseMove(policy, seed);
+      const st = useGameStore.getState();
+      if (st.gameGeneration !== gen || st.moveCount !== moveCount) return;
+      if (!st.snap?.legalMoves.includes(edge)) return;
+      setHintEdgeId(edge);
+    } catch (err) {
+      useGameStore.setState({
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }, [mode, boardSize]);
 
   const turnLabel = (() => {
     if (!snap) return '';
@@ -208,6 +253,9 @@ export default function App() {
                     : perfectSaysLine(perfectMargin, snap.currentPlayer)}
                 </p>
               )}
+            {overlayOn && analysis && (
+              <p className="theory-line">{analysisLine(analysis)}</p>
+            )}
 
             <div className="actions">
               <label className="size-label" htmlFor="play-mode">
@@ -264,6 +312,22 @@ export default function App() {
               <button type="button" onClick={() => onNewGame()}>
                 New game
               </button>
+              <button
+                type="button"
+                aria-pressed={overlayOn}
+                onClick={() => setOverlayOn((on) => !on)}
+              >
+                Overlay
+              </button>
+              <button
+                type="button"
+                disabled={hintDisabled}
+                onClick={() => {
+                  void onHint();
+                }}
+              >
+                Hint
+              </button>
             </div>
           </section>
 
@@ -272,6 +336,8 @@ export default function App() {
             lastMove={lastMove}
             gameGeneration={gameGeneration}
             inputEnabled={humanCanPlay}
+            analysis={overlayOn ? analysis : null}
+            hintEdgeId={hintEdgeId}
             onEdgeClick={onEdgeClick}
             onEdgeHover={playHover}
             edgeCoord={edgeCoord}

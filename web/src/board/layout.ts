@@ -22,6 +22,9 @@ export const COLORS = {
   boxP1: 0x2f6f4e,
   boxP2: 0xc45c26,
   paper: 0xf3efe6,
+  overlayShort: 0x8a8474,
+  overlayLong: 0x2f6f4e,
+  overlayLoop: 0x3d5a80,
 } as const;
 
 export function computeLayout(

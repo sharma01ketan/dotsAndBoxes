@@ -8,6 +8,7 @@ export const POLICY_PERFECT: () => number;
 export const POLICY_RANDOM: () => number;
 export const __wbg_wasmgame_free: (a: number, b: number) => void;
 export const isPerfectHudSize: (a: number, b: number) => number;
+export const wasmgame_analyze: (a: number) => [number, number];
 export const wasmgame_boxCount: (a: number) => number;
 export const wasmgame_boxOwner: (a: number, b: number) => number;
 export const wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];

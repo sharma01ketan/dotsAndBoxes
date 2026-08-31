@@ -14,7 +14,8 @@ dotsAndBoxes/
 ├─ wasm/            # Rust → WASM (@dab/dab-wasm)
 ├─ cli/             # Optional ASCII playground
 ├─ web/             # React + TypeScript + PixiJS
-├─ docs/specs/      # Phase 1–2 specs
+├─ server/          # Rust: axum health + WS sessions
+├─ docs/specs/      # Phase 1–3 specs
 └─ vercel.json      # Deploy config (not infra/)
 ```
 
@@ -24,10 +25,10 @@ dotsAndBoxes/
 | WASM bindings | `wasm/` | `@dab/dab-wasm` |
 | Terminal playground | `cli/` | Optional REPL (`cargo test -p dab-core` is the real check) |
 | Web UI | `web/` | Opponent / vs-AI Pixi board |
-| Docs | `docs/specs/` | Phase 1–2 specs |
+| Server | `server/` | Health + JSON WebSocket sessions |
+| Docs | `docs/specs/` | Phase 1–3 specs |
 
-`server/`, `gpu/`, `ai/`, `proto/`, and `infra/` are not in the tree until
-Phase 3–4.
+`gpu/`, `ai/`, `proto/`, and `infra/` are not in the tree until Phase 4–5.
 
 ## Prerequisites
 
@@ -74,11 +75,11 @@ hash of `core/` + `wasm/` Rust sources so a forgotten rebuild still fails).
 
 ## Next
 
-See PLAN.md §12 Phase 2 remaining, or Linear: [KET-21](https://linear.app/sharma01ketan/issue/KET-21) (theory overlay).
+See PLAN.md §12, or Linear: [KET-25](https://linear.app/sharma01ketan/issue/KET-25) (binary protocol).
 
 ## Tooling
 
-- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`)
+- Rust: `rustfmt.toml`, Cargo workspace (`core`, `cli`, `wasm`, `server`)
 - JS/TS: pnpm workspace (`web`, `wasm/pkg`), Prettier, ESLint (`no-console`)
 - CI: `.github/workflows/ci.yml`
 - Deploy: `vercel.json` at repo root

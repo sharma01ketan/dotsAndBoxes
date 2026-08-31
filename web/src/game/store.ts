@@ -4,15 +4,11 @@ import {
   playerLabel,
   winnerLabel,
   WasmGame,
-  POLICY_RANDOM,
-  POLICY_GREEDY,
-  POLICY_CGT,
-  POLICY_PERFECT,
-  POLICY_MCTS,
   isPerfectHudSize as wasmIsPerfectHudSize,
 } from '../lib/wasmGame';
 import { getAiEngine, initAiEngine } from './aiClient';
 import { cpuToMove, runAiTurnLoop, sleep } from './aiTurn';
+import { parseAnalysisDump, type AnalysisSnapshot } from './analysis';
 
 export const MIN_BOARD = 2;
 export const MAX_BOARD = 5;
@@ -112,13 +108,26 @@ function snapshotFrom(
   };
 }
 
+export { analysisLine, type AnalysisSnapshot } from './analysis';
+
+function readAnalysis(game: WasmGame): AnalysisSnapshot | null {
+  return parseAnalysisDump(game.analyze());
+}
+
+/** Must match wasm `POLICY_*` (0 random, 1 greedy, 2 CGT, 3 Perfect, 4 MCTS). */
 function policyForMode(mode: PlayMode): number | null {
-  if (mode === 'vs-random') return POLICY_RANDOM();
-  if (mode === 'vs-greedy') return POLICY_GREEDY();
-  if (mode === 'vs-mcts') return POLICY_MCTS();
-  if (mode === 'vs-cgt') return POLICY_CGT();
-  if (mode === 'vs-perfect') return POLICY_PERFECT();
+  if (mode === 'vs-random') return 0;
+  if (mode === 'vs-greedy') return 1;
+  if (mode === 'vs-mcts') return 4;
+  if (mode === 'vs-cgt') return 2;
+  if (mode === 'vs-perfect') return 3;
   return null;
+}
+
+/** Hint uses the CPU policy; Opponent (hotseat) uses CGT. */
+export function hintPolicyForMode(mode: PlayMode): number | null {
+  if (mode === 'hotseat') return 2;
+  return policyForMode(mode);
 }
 
 /** Live abort for the in-flight `runAiTurn` (not React state). */
@@ -143,6 +152,7 @@ type GameState = {
   game: WasmGame | null;
   edgeOwner: Int8Array;
   snap: GameSnapshot | null;
+  analysis: AnalysisSnapshot | null;
   /** Side-to-move margin from `perfectValue()`, vs Perfect only. */
   perfectMargin: number | 'computing' | null;
   init: () => Promise<void>;
@@ -203,6 +213,7 @@ function applyPlay(
     set({
       edgeOwner: nextOwners,
       snap: nextSnap,
+      analysis: readAnalysis(game),
       message: banner,
       moveCount: get().moveCount + 1,
     });
@@ -286,6 +297,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   game: null,
   edgeOwner: new Int8Array(0),
   snap: null,
+  analysis: null,
   perfectMargin: null,
 
   async init() {
@@ -330,6 +342,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       game,
       edgeOwner,
       snap: snapshotFrom(game, edgeOwner),
+      analysis: readAnalysis(game),
       message: `New ${clamped}×${clamped} ${PLAY_MODES.find((m) => m.id === mode)?.label ?? mode}`,
       error: null,
       gameSeed: (get().gameSeed + 0x9e37_79b9) >>> 0 || 1,

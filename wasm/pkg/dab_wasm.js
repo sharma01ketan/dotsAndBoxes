@@ -55,6 +55,16 @@ export class WasmGame {
         wasm.__wbg_wasmgame_free(ptr, 0);
     }
     /**
+     * Compact CGT analysis dump (KET-21). Does not mutate the game.
+     * @returns {Uint16Array}
+     */
+    analyze() {
+        const ret = wasm.wasmgame_analyze(this.__wbg_ptr);
+        var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+        return v1;
+    }
+    /**
      * @returns {number}
      */
     boxCount() {

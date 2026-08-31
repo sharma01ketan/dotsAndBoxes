@@ -17,6 +17,10 @@ export function POLICY_RANDOM(): number;
 export class WasmGame {
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Compact CGT analysis dump (KET-21). Does not mutate the game.
+     */
+    analyze(): Uint16Array;
     boxCount(): number;
     /**
      * `-1` unclaimed or out of range, `0` P1, `1` P2.
@@ -89,6 +93,7 @@ export interface InitOutput {
     readonly POLICY_RANDOM: () => number;
     readonly __wbg_wasmgame_free: (a: number, b: number) => void;
     readonly isPerfectHudSize: (a: number, b: number) => number;
+    readonly wasmgame_analyze: (a: number) => [number, number];
     readonly wasmgame_boxCount: (a: number) => number;
     readonly wasmgame_boxOwner: (a: number, b: number) => number;
     readonly wasmgame_chooseMove: (a: number, b: number, c: bigint) => [number, number, number];

@@ -248,6 +248,11 @@ impl WasmGame {
         Ok(out)
     }
 
+    /// Compact CGT analysis dump (KET-21). Does not mutate the game.
+    pub fn analyze(&self) -> Vec<u16> {
+        dab_core::encode_analysis(&self.inner)
+    }
+
     /// Choose a legal edge without applying it.
     ///
     /// `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
@@ -371,5 +376,19 @@ mod tests {
         assert!(!is_perfect_hud_size(5, 5));
         assert!(is_perfect_hud_size(2, 2));
         assert!(is_perfect_hud_size(3, 3));
+    }
+
+    #[test]
+    fn analyze_dump_matches_core_and_does_not_play() {
+        let game = WasmGame::new(1, 3).unwrap();
+        let dump = game.analyze();
+        assert_eq!(
+            dump,
+            dab_core::encode_analysis(&dab_core::Game::new(
+                dab_core::BoardGeom::new(1, 3).unwrap()
+            ))
+        );
+        assert_eq!(game.legal_moves().len(), game.edge_count() as usize);
+        assert_eq!(game.current_player(), 0);
     }
 }

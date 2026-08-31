@@ -94,53 +94,94 @@ pub fn attached_region(
 
 /// True when taking now would give up control (double-cross / all-but-four).
 pub fn should_refuse_capture(game: &Game) -> bool {
-    let pos = game.position();
     let analysis = analyze_endgame(game);
-    if !analysis.decomposed {
-        return false;
-    }
-    let n = pos.geom().box_count();
-    for id in 0..n {
-        if pos.box_is_claimed(id) || pos.sides_drawn(id) != 3 {
-            continue;
-        }
-        let Some(r) = attached_region(pos, &analysis, id) else {
-            continue;
-        };
-        if r.kind == RegionKind::ShortChain
-            && r.length == 2
-            && analysis.long_chain_count + analysis.loop_count > 0
-        {
-            return true;
-        }
-        if r.kind == RegionKind::Loop
-            && r.length == 4
-            && (analysis.long_chain_count > 0 || analysis.loop_count > 1)
-        {
-            return true;
-        }
-    }
-    false
+    refuse_remnant(game, &analysis).is_some()
 }
 
-/// Remnant region attached to a takeable that triggered refuse, if any.
+/// Remnant that triggered refuse, if any. Same predicate as [`should_refuse_capture`].
 pub fn refuse_skip_region(game: &Game) -> Option<Region> {
-    let pos = game.position();
     let analysis = analyze_endgame(game);
+    refuse_remnant(game, &analysis)
+}
+
+fn remnant_triggers_refuse(r: &Region, analysis: &EndgameAnalysis) -> bool {
+    (r.kind == RegionKind::ShortChain
+        && r.length == 2
+        && analysis.long_chain_count + analysis.loop_count > 0)
+        || (r.kind == RegionKind::Loop
+            && r.length == 4
+            && (analysis.long_chain_count > 0 || analysis.loop_count > 1))
+}
+
+/// Corridor attached to a takeable that should be double-crossed / all-but-four.
+pub fn refuse_remnant(game: &Game, analysis: &EndgameAnalysis) -> Option<Region> {
+    if !analysis.decomposed {
+        return None;
+    }
+    let pos = game.position();
     let n = pos.geom().box_count();
     for id in 0..n {
         if pos.box_is_claimed(id) || pos.sides_drawn(id) != 3 {
             continue;
         }
-        if let Some(r) = attached_region(pos, &analysis, id) {
-            let skip = (r.kind == RegionKind::ShortChain && r.length == 2)
-                || (r.kind == RegionKind::Loop && r.length == 4);
-            if skip {
-                return Some(*r);
-            }
+        let Some(r) = attached_region(pos, analysis, id) else {
+            continue;
+        };
+        if remnant_triggers_refuse(r, analysis) {
+            return Some(*r);
         }
     }
     None
+}
+
+/// Unclaimed boxes with exactly three sides drawn.
+pub fn takeable_box_ids(pos: Position) -> Vec<BoxId> {
+    let n = pos.geom().box_count();
+    let mut out = Vec::new();
+    for id in 0..n {
+        if !pos.box_is_claimed(id) && pos.sides_drawn(id) == 3 {
+            out.push(id);
+        }
+    }
+    out
+}
+
+pub const REGION_KIND_SHORT: u16 = 0;
+pub const REGION_KIND_LONG: u16 = 1;
+pub const REGION_KIND_LOOP: u16 = 2;
+
+/// Flat `u16` dump for WASM / overlay. See `docs/specs/phase2-theory-overlay.md`.
+pub fn encode_analysis(game: &Game) -> Vec<u16> {
+    let analysis = analyze_endgame(game);
+    let pos = game.position();
+    let takeables = takeable_box_ids(pos);
+    let mut out = vec![
+        u16::from(analysis.decomposed),
+        analysis.long_chain_count as u16,
+        analysis.short_chain_count as u16,
+        analysis.loop_count as u16,
+        analysis.takeable_count as u16,
+        analysis.long_chain_parity as u16,
+        analysis.target_parity as u16,
+        analysis.region_count as u16,
+    ];
+    for r in analysis.regions() {
+        let kind = match r.kind {
+            RegionKind::ShortChain => REGION_KIND_SHORT,
+            RegionKind::LongChain => REGION_KIND_LONG,
+            RegionKind::Loop => REGION_KIND_LOOP,
+        };
+        let boxes: Vec<BoxId> = (0..pos.geom().box_count())
+            .filter(|&id| r.boxes.get(id))
+            .collect();
+        out.push(kind);
+        out.push(r.length as u16);
+        out.push(boxes.len() as u16);
+        out.extend(boxes);
+    }
+    debug_assert_eq!(takeables.len(), analysis.takeable_count as usize);
+    out.extend(takeables);
+    out
 }
 
 /// Legal edges that open `region` (ground string on a chain; internal on a loop).
@@ -539,6 +580,24 @@ mod tests {
     }
 
     #[test]
+    fn encode_analysis_1x3_long_chain() {
+        let geom = BoardGeom::new(1, 3).unwrap();
+        let mut game = Game::new(geom);
+        draw_all_horizontals(&mut game);
+        let dump = encode_analysis(&game);
+        assert_eq!(dump[0], 1); // decomposed
+        assert_eq!(dump[1], 1); // L
+        assert_eq!(dump[2], 0);
+        assert_eq!(dump[3], 0);
+        assert_eq!(dump[4], 0); // takeables
+        assert_eq!(dump[7], 1); // one region
+        assert_eq!(dump[8], REGION_KIND_LONG);
+        assert_eq!(dump[9], 3);
+        assert_eq!(dump[10], 3);
+        assert_eq!(&dump[11..14], &[0, 1, 2]);
+    }
+
+    #[test]
     fn one_by_two_is_a_short_chain() {
         let geom = BoardGeom::new(1, 2).unwrap();
         let mut game = Game::new(geom);
@@ -592,6 +651,32 @@ mod tests {
         let boxes = only_region(&a, RegionKind::Loop, 4);
         assert_eq!(boxes, vec![0, 1, 2, 3]);
         assert_eq!(a.regions()[0].length, 4);
+    }
+
+    #[test]
+    fn encode_analysis_2x2_loop() {
+        let geom = BoardGeom::new(2, 2).unwrap();
+        let mut game = Game::new(geom);
+        draw(
+            &mut game,
+            &[
+                edge(geom, Orientation::Horizontal, 0, 0),
+                edge(geom, Orientation::Horizontal, 0, 1),
+                edge(geom, Orientation::Horizontal, 2, 0),
+                edge(geom, Orientation::Horizontal, 2, 1),
+                edge(geom, Orientation::Vertical, 0, 0),
+                edge(geom, Orientation::Vertical, 1, 0),
+                edge(geom, Orientation::Vertical, 0, 2),
+                edge(geom, Orientation::Vertical, 1, 2),
+            ],
+        );
+        let dump = encode_analysis(&game);
+        assert_eq!(dump[0], 1);
+        assert_eq!(dump[3], 1); // loop_count
+        assert_eq!(dump[7], 1);
+        assert_eq!(dump[8], REGION_KIND_LOOP);
+        assert_eq!(dump[9], 4);
+        assert_eq!(dump[10], 4);
     }
 
     #[test]
