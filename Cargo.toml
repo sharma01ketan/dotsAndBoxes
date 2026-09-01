@@ -4,6 +4,7 @@ members = [
     "core",
     "cli",
     "wasm",
+    "wasm-az",
     "server",
 ]
 

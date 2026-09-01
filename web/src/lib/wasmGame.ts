@@ -5,6 +5,7 @@ import init, {
   POLICY_CGT,
   POLICY_PERFECT,
   POLICY_MCTS,
+  POLICY_AZ,
   isPerfectHudSize,
 } from '@dab/dab-wasm';
 import { createWasmInit } from './wasmInit';
@@ -23,6 +24,7 @@ export {
   POLICY_CGT,
   POLICY_PERFECT,
   POLICY_MCTS,
+  POLICY_AZ,
   isPerfectHudSize,
 };
 

@@ -1,283 +1,164 @@
-/* @ts-self-types="./dab_wasm.d.ts" */
+/* @ts-self-types="./dab_wasm_az.d.ts" */
 
 /**
  * @returns {number}
  */
-export function POLICY_AZ() {
-    const ret = wasm.POLICY_AZ();
-    return ret;
+export function AZ_CHANNELS() {
+    const ret = wasm.AZ_CHANNELS();
+    return ret >>> 0;
 }
 
 /**
  * @returns {number}
  */
-export function POLICY_CGT() {
-    const ret = wasm.POLICY_CGT();
-    return ret;
+export function AZ_PLANE() {
+    const ret = wasm.AZ_PLANE();
+    return ret >>> 0;
 }
 
 /**
  * @returns {number}
  */
-export function POLICY_GREEDY() {
-    const ret = wasm.POLICY_GREEDY();
-    return ret;
+export function AZ_POLICY() {
+    const ret = wasm.AZ_POLICY();
+    return ret >>> 0;
 }
 
 /**
- * @returns {number}
+ * Mirror of the Worker's `WasmGame`. Own state; does not share the base module.
  */
-export function POLICY_MCTS() {
-    const ret = wasm.POLICY_MCTS();
-    return ret;
-}
-
-/**
- * @returns {number}
- */
-export function POLICY_PERFECT() {
-    const ret = wasm.POLICY_PERFECT();
-    return ret;
-}
-
-/**
- * @returns {number}
- */
-export function POLICY_RANDOM() {
-    const ret = wasm.POLICY_RANDOM();
-    return ret;
-}
-
-/**
- * Browser-facing game handle wrapping [`Game`].
- */
-export class WasmGame {
+export class AzGame {
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        WasmGameFinalization.unregister(this);
+        AzGameFinalization.unregister(this);
         return ptr;
     }
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_wasmgame_free(ptr, 0);
+        wasm.__wbg_azgame_free(ptr, 0);
     }
     /**
-     * Compact CGT analysis dump (KET-21). Does not mutate the game.
-     * @returns {Uint16Array}
-     */
-    analyze() {
-        const ret = wasm.wasmgame_analyze(this.__wbg_ptr);
-        var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
-        return v1;
-    }
-    /**
-     * @returns {number}
-     */
-    boxCount() {
-        const ret = wasm.wasmgame_boxCount(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * `-1` unclaimed or out of range, `0` P1, `1` P2.
-     * @param {number} box_id
-     * @returns {number}
-     */
-    boxOwner(box_id) {
-        const ret = wasm.wasmgame_boxOwner(this.__wbg_ptr, box_id);
-        return ret;
-    }
-    /**
-     * Choose a legal edge without applying it.
-     *
-     * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
-     * `5` is reserved for AZ in `@dab/dab-wasm-az` and errors here.
-     * `seed` seeds the engine RNG.
-     * @param {number} policy
+     * PUCT search. Requires a loaded model. Does not apply the chosen edge.
+     * Endgame Perfect/CGT handoff is slice C.
+     * @param {number} last_move
+     * @param {number} sims
      * @param {bigint} seed
      * @returns {number}
      */
-    chooseMove(policy, seed) {
-        const ret = wasm.wasmgame_chooseMove(this.__wbg_ptr, policy, seed);
+    chooseMoveAz(last_move, sims, seed) {
+        const ret = wasm.azgame_chooseMoveAz(this.__wbg_ptr, last_move, sims, seed);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0];
     }
     /**
-     * @returns {number}
-     */
-    get cols() {
-        const ret = wasm.wasmgame_cols(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Current player: `0` = P1, `1` = P2.
-     * @returns {number}
-     */
-    currentPlayer() {
-        const ret = wasm.wasmgame_currentPlayer(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Resolve edge id → `[orientation, row, col]` (`orientation`: 0=H, 1=V).
-     * @param {number} edge
-     * @returns {Uint16Array}
-     */
-    edgeCoord(edge) {
-        const ret = wasm.wasmgame_edgeCoord(this.__wbg_ptr, edge);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
-        return v1;
-    }
-    /**
-     * @returns {number}
-     */
-    edgeCount() {
-        const ret = wasm.wasmgame_edgeCount(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Resolve `(orientation, row, col)` → edge id (`orientation`: 0=H, 1=V).
-     * @param {number} orientation
-     * @param {number} row
-     * @param {number} col
-     * @returns {number}
-     */
-    edgeId(orientation, row, col) {
-        const ret = wasm.wasmgame_edgeId(this.__wbg_ptr, orientation, row, col);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return ret[0];
-    }
-    /**
-     * @param {number} edge
-     * @returns {boolean}
-     */
-    edgeIsDrawn(edge) {
-        const ret = wasm.wasmgame_edgeIsDrawn(this.__wbg_ptr, edge);
-        return ret !== 0;
-    }
-    /**
-     * @param {number} edge
-     * @returns {boolean}
-     */
-    isLegal(edge) {
-        const ret = wasm.wasmgame_isLegal(this.__wbg_ptr, edge);
-        return ret !== 0;
-    }
-    /**
-     * @returns {boolean}
-     */
-    isTerminal() {
-        const ret = wasm.wasmgame_isTerminal(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * Undrawn edge ids (JS: `Uint16Array`).
-     * @returns {Uint16Array}
-     */
-    legalMoves() {
-        const ret = wasm.wasmgame_legalMoves(this.__wbg_ptr);
-        var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
-        return v1;
-    }
-    /**
-     * Create a new game with `rows × cols` boxes.
      * @param {number} rows
      * @param {number} cols
      */
     constructor(rows, cols) {
-        const ret = wasm.wasmgame_new(rows, cols);
+        const ret = wasm.azgame_new(rows, cols);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         this.__wbg_ptr = ret[0];
-        WasmGameFinalization.register(this, this.__wbg_ptr, this);
+        AzGameFinalization.register(this, this.__wbg_ptr, this);
         return this;
     }
     /**
-     * Box-difference margin for the side to move (2×2 / 3×3 only).
+     * Keep the mirror in sync. Does not search.
+     * @param {number} edge
+     */
+    play(edge) {
+        const ret = wasm.azgame_play(this.__wbg_ptr, edge);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * Net policy argmax over legal moves. Requires a loaded model. No tree search.
+     * @param {number} last_move
      * @returns {number}
      */
-    perfectValue() {
-        const ret = wasm.wasmgame_perfectValue(this.__wbg_ptr);
+    policyArgmax(last_move) {
+        const ret = wasm.azgame_policyArgmax(this.__wbg_ptr, last_move);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0];
     }
-    /**
-     * Play an edge. Returns `[extraTurn (0/1), completedCount, ...completedBoxIds]`.
-     * @param {number} edge
-     * @returns {Uint16Array}
-     */
-    play(edge) {
-        const ret = wasm.wasmgame_play(this.__wbg_ptr, edge);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
-        return v1;
-    }
-    /**
-     * @returns {number}
-     */
-    get rows() {
-        const ret = wasm.wasmgame_rows(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @returns {number}
-     */
-    scoreP1() {
-        const ret = wasm.wasmgame_scoreP1(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * @returns {number}
-     */
-    scoreP2() {
-        const ret = wasm.wasmgame_scoreP2(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * `-1` in progress, `0` P1 wins, `1` P2 wins, `2` draw.
-     * @returns {number}
-     */
-    winner() {
-        const ret = wasm.wasmgame_winner(this.__wbg_ptr);
-        return ret;
+}
+if (Symbol.dispose) AzGame.prototype[Symbol.dispose] = AzGame.prototype.free;
+
+/**
+ * Loaded sidecar JSON, or `""` if none.
+ * @returns {string}
+ */
+export function azModelStamp() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.azModelStamp();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
 }
-if (Symbol.dispose) WasmGame.prototype[Symbol.dispose] = WasmGame.prototype.free;
 
 export function init_panic_hook() {
     wasm.init_panic_hook();
 }
 
 /**
- * Square 2×2 / 3×3 only. HUD and `chooseMove(3)` share this.
- * @param {number} rows
- * @param {number} cols
- * @returns {boolean}
+ * Parse ONNX via tract, validate the sidecar stamp, store the model.
+ *
+ * Throws on any stamp mismatch. Slice A: a fixture net is enough; HUD is slice E.
+ * @param {Uint8Array} onnx
+ * @param {string} sidecar
  */
-export function isPerfectHudSize(rows, cols) {
-    const ret = wasm.isPerfectHudSize(rows, cols);
-    return ret !== 0;
+export function loadAzModel(onnx, sidecar) {
+    const ptr0 = passArray8ToWasm0(onnx, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(sidecar, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.loadAzModel(ptr0, len0, ptr1, len1);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
 }
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_is_function_1ff95bcc5517c252: function(arg0) {
+            const ret = typeof(arg0) === 'function';
+            return ret;
+        },
+        __wbg___wbindgen_is_object_a27215656b807791: function(arg0) {
+            const val = arg0;
+            const ret = typeof(val) === 'object' && val !== null;
+            return ret;
+        },
+        __wbg___wbindgen_is_string_ea5e6cc2e4141dfe: function(arg0) {
+            const ret = typeof(arg0) === 'string';
+            return ret;
+        },
+        __wbg___wbindgen_is_undefined_c05833b95a3cf397: function(arg0) {
+            const ret = arg0 === undefined;
+            return ret;
+        },
         __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_call_a6e5c5dce5018821: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = arg0.call(arg1, arg2);
+            return ret;
+        }, arguments); },
+        __wbg_crypto_38df2bab126b63dc: function(arg0) {
+            const ret = arg0.crypto;
+            return ret;
         },
         __wbg_error_a6fa202b58aa1cd3: function(arg0, arg1) {
             let deferred0_0;
@@ -290,10 +171,43 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
         },
+        __wbg_getRandomValues_c44a50d8cfdaebeb: function() { return handleError(function (arg0, arg1) {
+            arg0.getRandomValues(arg1);
+        }, arguments); },
+        __wbg_length_1f0964f4a5e2c6d8: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_msCrypto_bd5a034af96bcba6: function(arg0) {
+            const ret = arg0.msCrypto;
+            return ret;
+        },
         __wbg_new_227d7c05414eb861: function() {
             const ret = new Error();
             return ret;
         },
+        __wbg_new_with_length_e6785c33c8e4cce8: function(arg0) {
+            const ret = new Uint8Array(arg0 >>> 0);
+            return ret;
+        },
+        __wbg_node_84ea875411254db1: function(arg0) {
+            const ret = arg0.node;
+            return ret;
+        },
+        __wbg_process_44c7a14e11e9f69e: function(arg0) {
+            const ret = arg0.process;
+            return ret;
+        },
+        __wbg_prototypesetcall_4770620bbe4688a0: function(arg0, arg1, arg2) {
+            Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
+        },
+        __wbg_randomFillSync_6c25eac9869eb53c: function() { return handleError(function (arg0, arg1) {
+            arg0.randomFillSync(arg1);
+        }, arguments); },
+        __wbg_require_b4edbdcf3e2a1ef0: function() { return handleError(function () {
+            const ret = module.require;
+            return ret;
+        }, arguments); },
         __wbg_stack_3b0d974bbf31e44f: function(arg0, arg1) {
             const ret = arg1.stack;
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -301,7 +215,36 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg_static_accessor_GLOBAL_4ef717fb391d88b7: function() {
+            const ret = typeof global === 'undefined' ? null : global;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_GLOBAL_THIS_8d1badc68b5a74f4: function() {
+            const ret = typeof globalThis === 'undefined' ? null : globalThis;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_SELF_146583524fe1469b: function() {
+            const ret = typeof self === 'undefined' ? null : self;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_WINDOW_f2829a2234d7819e: function() {
+            const ret = typeof window === 'undefined' ? null : window;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_subarray_3ed232c8a6baee09: function(arg0, arg1, arg2) {
+            const ret = arg0.subarray(arg1 >>> 0, arg2 >>> 0);
+            return ret;
+        },
+        __wbg_versions_276b2795b1c6a219: function(arg0) {
+            const ret = arg0.versions;
+            return ret;
+        },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
+            const ret = getArrayU8FromWasm0(arg0, arg1);
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
@@ -318,17 +261,23 @@ function __wbg_get_imports() {
     };
     return {
         __proto__: null,
-        "./dab_wasm_bg.js": import0,
+        "./dab_wasm_az_bg.js": import0,
     };
 }
 
-const WasmGameFinalization = (typeof FinalizationRegistry === 'undefined')
+const AzGameFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_wasmgame_free(ptr, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_azgame_free(ptr, 1));
 
-function getArrayU16FromWasm0(ptr, len) {
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
+function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
-    return getUint16ArrayMemory0().subarray(ptr / 2, ptr / 2 + len);
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 let cachedDataViewMemory0 = null;
@@ -343,20 +292,32 @@ function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
 
-let cachedUint16ArrayMemory0 = null;
-function getUint16ArrayMemory0() {
-    if (cachedUint16ArrayMemory0 === null || cachedUint16ArrayMemory0.byteLength === 0) {
-        cachedUint16ArrayMemory0 = new Uint16Array(wasm.memory.buffer);
-    }
-    return cachedUint16ArrayMemory0;
-}
-
 let cachedUint8ArrayMemory0 = null;
 function getUint8ArrayMemory0() {
     if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_exn_store(idx);
+    }
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {
@@ -437,7 +398,6 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
-    cachedUint16ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;
@@ -511,7 +471,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('dab_wasm_bg.wasm', import.meta.url);
+        module_or_path = new URL('dab_wasm_az_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

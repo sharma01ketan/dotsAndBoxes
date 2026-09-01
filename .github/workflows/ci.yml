@@ -72,3 +72,27 @@ jobs:
           bash scripts/wasm-source-stamp.sh
       - name: fail if wasm glue or source stamp drifted
         run: git diff --exit-code -- wasm/pkg ':!wasm/pkg/*.wasm'
+
+  wasm-az-pkg:
+    name: wasm-az/pkg matches source
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: baptiste0928/cargo-install@v3
+        with:
+          crate: wasm-pack
+          version: "0.15.0"
+      - name: rebuild wasm-az/pkg
+        env:
+          RUSTFLAGS: "-C target-feature=+simd128"
+        run: |
+          wasm-pack build wasm-az --target web --out-dir pkg --scope dab --no-opt
+          rm -f wasm-az/pkg/.gitignore
+          bash scripts/wasm-az-source-stamp.sh
+      - name: fail if wasm-az glue or source stamp drifted
+        run: git diff --exit-code -- wasm-az/pkg ':!wasm-az/pkg/*.wasm'

@@ -19,11 +19,13 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# WASM / wasm-pack (commit wasm/pkg so the web app works after clone)
+# WASM / wasm-pack (commit wasm/pkg and wasm-az/pkg so clone + CI glue diffs work)
 pkg/
 **/pkg/
 !wasm/pkg/
 !wasm/pkg/**
+!wasm-az/pkg/
+!wasm-az/pkg/**
 
 # IDE / OS
 .idea/

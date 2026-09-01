@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export function POLICY_AZ(): number;
+
 export function POLICY_CGT(): number;
 
 export function POLICY_GREEDY(): number;
@@ -30,6 +32,7 @@ export class WasmGame {
      * Choose a legal edge without applying it.
      *
      * `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
+     * `5` is reserved for AZ in `@dab/dab-wasm-az` and errors here.
      * `seed` seeds the engine RNG.
      */
     chooseMove(policy: number, seed: bigint): number;
@@ -86,6 +89,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly POLICY_AZ: () => number;
     readonly POLICY_CGT: () => number;
     readonly POLICY_GREEDY: () => number;
     readonly POLICY_MCTS: () => number;

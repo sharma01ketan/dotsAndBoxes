@@ -114,7 +114,7 @@ function readAnalysis(game: WasmGame): AnalysisSnapshot | null {
   return parseAnalysisDump(game.analyze());
 }
 
-/** Must match wasm `POLICY_*` (0 random, 1 greedy, 2 CGT, 3 Perfect, 4 MCTS). */
+/** Must match wasm `POLICY_*` (0 random, 1 greedy, 2 CGT, 3 Perfect, 4 MCTS, 5 AZ). */
 function policyForMode(mode: PlayMode): number | null {
   if (mode === 'vs-random') return 0;
   if (mode === 'vs-greedy') return 1;

@@ -15,7 +15,10 @@ Phase 3 started: `server/` health + JSON WebSocket sessions (KET-23, KET-24).
 What is *not* shipped: binary protocol, rooms, AlphaZero, GPU kernels.
 
 **Next.** [KET-25](https://linear.app/sharma01ketan/issue/KET-25) (binary
-protocol). Do not recreate `gpu/` / `ai/` / `proto/` / `infra/`.
+protocol). Parallel: in-WASM AlphaZero slice A
+([`docs/specs/phase4-in-wasm-az.md`](docs/specs/phase4-in-wasm-az.md)).
+Do not recreate `gpu/` / `proto/` / `infra/`. Recreate `ai/` for Phase 4 training
+(slice D).
 
 **Parallel (does not block KET-25).** JS-shell diet so the WASM core is not
 hidden behind a 500 kB Pixi+React parse:
@@ -84,7 +87,7 @@ and shows the theory to the user. That contrast is the story.
 │  ├─ WebGL board renderer (PixiJS)  ── 60fps chain animations     │
 │  ├─ Game core (Rust → WASM)        ── rules, bitboards, hints    │
 │  ├─ Local AI (WASM MCTS)           ── easy/medium, zero-latency  │
-│  ├─ Neural inference (ONNX Runtime Web + WebGPU) ── hard AI      │
+│  ├─ Neural inference (tract CPU, lazy wasm-az) ── Hard (AZ) v1     │
 │  └─ WebSocket client               ── realtime multiplayer       │
 └───────────────┬──────────────────────────────────────────────┘
                 │ WSS (binary protocol)
@@ -125,7 +128,7 @@ and shows the theory to the user. That contrast is the story.
 | Frontend UI | **React + TypeScript** | Productive, huge ecosystem, easy state management, familiar to you. |
 | Board rendering | **WebGL via PixiJS** (under review) | GPU-composited sprites/particles for later chain-capture spectacle. Today the board is lines/dots/fills. Lazy-load or replace: [`wasm-first-client.md`](docs/specs/wasm-first-client.md). |
 | Local AI (easy/medium) | **WASM MCTS (Rust core)** | Zero server round-trip, instant hints, works offline. |
-| Neural inference (hard AI) | **ONNX Runtime Web + WebGPU** | Runs the trained net in-browser on the M1's GPU (via Metal) and on users' GPUs. "Serverless AI" — scales for free. Server-side `ort` fallback for ranked play integrity. |
+| Neural inference (hard AI) | **tract (CPU, `simd128`) in lazily-loaded `@dab/dab-wasm-az`** | v1. Spec: [`docs/specs/phase4-in-wasm-az.md`](docs/specs/phase4-in-wasm-az.md). ONNX Runtime Web + WebGPU is the later fast path, not this slice. Server-side `ort` still optional for ranked integrity. |
 | Backend / realtime | **Rust: axum + tokio + tungstenite** | Low-latency authoritative server, safe concurrency, links the shared core natively. |
 | Persistence | **Postgres** | Users, ratings, replays; relational + JSONB for move logs. |
 | Ephemeral state | **Redis** | Matchmaking queue, pub/sub across server instances, presence. |
@@ -149,7 +152,8 @@ tooling lives.
   (+ ground), strings = edges.
 - **APIs (shared by server, client-WASM, and training bindings):**
   - `legal_moves()`, `apply_move()`, `undo()`, `is_terminal()`, `score()`
-  - `to_features()` — tensor encoding for the neural net
+  - `to_features()` — tensor encoding for the neural net (frozen in
+    [`docs/specs/phase4-in-wasm-az.md`](docs/specs/phase4-in-wasm-az.md))
   - `analyze_endgame()` — chains, loops, long-chain parity, control
   - `solve_exact(depth/size limits)` — alpha-beta + transposition table + symmetry
 - **Correctness:** property tests (random playouts never violate invariants),
@@ -165,9 +169,11 @@ tooling lives.
 3. **CGT heuristic** — double-cross / all-but-four. PLAN originally called this
    Medium. The HUD label is **Hard (CGT)** because AlphaZero is unbuilt. **Shipped.**
    Parity is analyzed for the overlay (KET-21), not used to steer `CgtEngine`.
-4. **AlphaZero (Hard)** — CNN policy/value + MCTS. **Phase 4.** Local WASM MCTS
-   (KET-19) is the in-phase stand-in: HUD **Medium (MCTS)**, `policy = 4`.
-   Spec: [`docs/specs/phase2-mcts.md`](docs/specs/phase2-mcts.md).
+4. **AlphaZero (Hard)** — small ResNet policy/value + PUCT in WASM. **Phase 4**
+   ([`docs/specs/phase4-in-wasm-az.md`](docs/specs/phase4-in-wasm-az.md)). HUD
+   **Hard (AZ)** beside **Hard (CGT)**; MCTS stays **Medium (MCTS)**. Slice A
+   is plumbing only (no HUD until a trained net). Local WASM MCTS (KET-19) remains
+   the Medium rung: `policy = 4`.
 5. **Perfect (2×2 / 3×3)** — exact `Game` search. **Shipped.** HUD search
    runs in a Web Worker (KET-20).
 
@@ -181,8 +187,10 @@ tooling lives.
   in-browser for strong local play.
 - **Training:** PyTorch on MPS (Apple Silicon). Loss = policy cross-entropy +
   value MSE. Checkpoints gated by win-rate vs. previous best (Elo-style arena).
-- **Deployment:** best net exported to **ONNX**, shipped to the client for
-  WebGPU inference; optional server-side `ort` inference for ranked integrity.
+- **Deployment:** best net exported to **ONNX**, fetched as a static
+  `/models/*.onnx` into `@dab/dab-wasm-az` (tract CPU, `simd128`). WebGPU /
+  ONNX Runtime Web is a later fast path behind the same `Evaluate` trait.
+  Optional server-side `ort` for ranked integrity.
 - **Evaluation:** arena vs. the CGT engine and the exact solver on small boards —
   gives concrete, quotable strength numbers.
 
@@ -256,6 +264,8 @@ Redis: `matchmaking:queue`, `presence:*`, `room:*` pub/sub channels.
 dotsAndBoxes/
 ├─ PLAN.md
 ├─ core/            # Rust: shared game engine + solver (native + wasm targets)
+├─ wasm/            # @dab/dab-wasm (rules, engines)
+├─ wasm-az/         # @dab/dab-wasm-az (tract AZ; lazy)
 ├─ server/          # Rust: axum health + WS sessions (links core)
 ├─ web/             # React + TS + PixiJS frontend (loads core WASM)
 ├─ ai/              # Python: training, self-play, ONNX export — Phase 4
@@ -265,8 +275,9 @@ dotsAndBoxes/
 └─ docs/            # architecture notes, CGT writeups
 ```
 
-`gpu/`, `ai/`, `proto/`, and `infra/` stay out of git until those phases
-(KET-61). Cargo workspace is `core`, `cli`, `wasm`, `server`. Deploy config
+`gpu/`, `proto/`, and `infra/` stay out of git until those phases
+(KET-61). `ai/` is recreated for Phase 4 training (slice D). Cargo workspace is
+`core`, `cli`, `wasm`, `wasm-az`, `server`. Deploy config
 is `vercel.json` at repo root (frontend only).
 
 Tooling: Cargo workspace for Rust crates; pnpm for the web app;
@@ -323,11 +334,13 @@ for Canvas 2D. Not a Makepad/egui/Leptos rewrite. Not CRDTs for `play()`.
 - Postgres persistence: users, games, ratings (Elo), replays.
 - **Demo:** two browsers playing a live ranked match; a third spectating.
 
-### Phase 4 — AlphaZero + WebGPU
-- CNN policy/value net; self-play loop using the core.
-- WebGPU/WGSL batched rollout + eval kernels via `wgpu`.
-- PyTorch MPS training on the M1; arena gating; ONNX export.
-- ONNX Runtime Web + WebGPU inference in-browser for "Hard" AI.
+### Phase 4 — AlphaZero (in-WASM tract) + later WebGPU
+- CNN/ResNet policy/value net; self-play via `dab-core`; spec:
+  [`docs/specs/phase4-in-wasm-az.md`](docs/specs/phase4-in-wasm-az.md).
+- **v1 inference:** tract CPU (`simd128`) in lazily-loaded `wasm-az/`.
+- WebGPU/WGSL batched rollout + eval kernels via `wgpu` — later; do not recreate
+  `gpu/` until that slice.
+- PyTorch MPS training on the M1; arena gating; ONNX export + sidecar stamp.
 - **Demo:** the learned net beating the heuristic engine, running in the browser.
 
 ### Phase 5 — Polish, observability, deploy

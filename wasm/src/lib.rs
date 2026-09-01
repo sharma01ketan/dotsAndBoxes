@@ -35,6 +35,8 @@ pub const POLICY_CGT: u8 = 2;
 pub const POLICY_PERFECT: u8 = 3;
 /// `choose_move` policy: UCT MCTS (greedy rollouts).
 pub const POLICY_MCTS: u8 = 4;
+/// `choose_move` policy: AlphaZero (evaluated in `@dab/dab-wasm-az`, not here).
+pub const POLICY_AZ: u8 = 5;
 
 #[wasm_bindgen(js_name = POLICY_RANDOM)]
 pub fn policy_random() -> u8 {
@@ -59,6 +61,11 @@ pub fn policy_perfect() -> u8 {
 #[wasm_bindgen(js_name = POLICY_MCTS)]
 pub fn policy_mcts() -> u8 {
     POLICY_MCTS
+}
+
+#[wasm_bindgen(js_name = POLICY_AZ)]
+pub fn policy_az() -> u8 {
+    POLICY_AZ
 }
 
 /// Square 2×2 / 3×3 only. HUD and `chooseMove(3)` share this.
@@ -256,6 +263,7 @@ impl WasmGame {
     /// Choose a legal edge without applying it.
     ///
     /// `policy`: `0` = random, `1` = greedy, `2` = CGT, `3` = Perfect, `4` = MCTS.
+    /// `5` is reserved for AZ in `@dab/dab-wasm-az` and errors here.
     /// `seed` seeds the engine RNG.
     #[wasm_bindgen(js_name = chooseMove)]
     pub fn choose_move(&mut self, policy: u8, seed: u64) -> Result<u16, JsValue> {
@@ -277,9 +285,12 @@ impl WasmGame {
                     engine.choose(&self.inner)
                 })
             }
+            POLICY_AZ => {
+                return Err(js_err("AZ runs in the @dab/dab-wasm-az module"));
+            }
             _ => {
                 return Err(js_err(format!(
-                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt, 3=perfect, 4=mcts)"
+                    "unknown policy {policy} (0=random, 1=greedy, 2=cgt, 3=perfect, 4=mcts; 5=az in dab-wasm-az)"
                 )));
             }
         };
@@ -338,6 +349,9 @@ mod tests {
         assert!(!game.edge_is_drawn(mcts));
         assert_eq!(game.current_player(), 0);
         assert_eq!(game.legal_moves().len(), game.edge_count() as usize);
+
+        assert_eq!(POLICY_AZ, 5);
+        assert_eq!(policy_az(), 5);
 
         let v = game.perfect_value().unwrap();
         assert_eq!(

@@ -1,0 +1,20 @@
+{
+  "name": "@dab/dab-wasm-az",
+  "type": "module",
+  "collaborators": [
+    "Ketan Sharma"
+  ],
+  "description": "Lazily-loaded WASM AlphaZero inference (tract CPU)",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "dab_wasm_az_bg.wasm",
+    "dab_wasm_az.js",
+    "dab_wasm_az.d.ts"
+  ],
+  "main": "dab_wasm_az.js",
+  "types": "dab_wasm_az.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

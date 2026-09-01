@@ -4,6 +4,7 @@
   "packageManager": "pnpm@9.2.0",
   "scripts": {
     "build:wasm": "wasm-pack build wasm --target web --out-dir pkg --scope dab --no-opt && rm -f wasm/pkg/.gitignore && bash scripts/wasm-source-stamp.sh",
+    "build:wasm-az": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build wasm-az --target web --out-dir pkg --scope dab --no-opt && rm -f wasm-az/pkg/.gitignore && bash scripts/wasm-az-source-stamp.sh",
     "dev": "pnpm --filter @dab/web dev",
     "build": "pnpm build:wasm && pnpm --filter @dab/web build",
     "lint": "pnpm --filter @dab/web lint",

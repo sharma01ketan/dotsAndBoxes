@@ -12,6 +12,7 @@ dotsAndBoxes/
 ├─ PLAN.md
 ├─ core/            # Rust: rules, engines, exact solver
 ├─ wasm/            # Rust → WASM (@dab/dab-wasm)
+├─ wasm-az/         # Lazy AZ inference WASM (tract; Phase 4)
 ├─ cli/             # Optional ASCII playground
 ├─ web/             # React + TypeScript + PixiJS
 ├─ server/          # Rust: axum health + WS sessions
@@ -23,12 +24,14 @@ dotsAndBoxes/
 |------|------|--------|
 | Shared game core | `core/` | Rules, Random/Greedy/CGT/Perfect |
 | WASM bindings | `wasm/` | `@dab/dab-wasm` |
+| AZ inference WASM | `wasm-az/` | `@dab/dab-wasm-az` (slice A plumbing; no HUD) |
 | Terminal playground | `cli/` | Optional REPL (`cargo test -p dab-core` is the real check) |
 | Web UI | `web/` | Opponent / vs-AI Pixi board |
 | Server | `server/` | Health + JSON WebSocket sessions |
 | Docs | `docs/specs/` | Phase 1–3 specs |
 
-`gpu/`, `ai/`, `proto/`, and `infra/` are not in the tree until Phase 4–5.
+`gpu/` / `proto/` / `infra/` are not in the tree until those phases. `ai/` is
+recreated for Phase 4 training.
 
 ## Prerequisites
 
